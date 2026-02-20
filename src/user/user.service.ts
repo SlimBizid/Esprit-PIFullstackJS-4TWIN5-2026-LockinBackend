@@ -36,8 +36,7 @@ export class UserService {
   async CreateUser(
     username: string,
     email: string,
-    password: string,
-    type: UserType,
+    plaintextpassword: string,
     githubhandle?: string,
   ) {
     if (await this.findUsernameExists(username)) {
@@ -46,11 +45,11 @@ export class UserService {
     if (await this.findEmailExists(email)) {
       throw new HttpException('Email already exists', HttpStatus.CONFLICT);
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const password = await bcrypt.hash(plaintextpassword, 10);
     await this.userRepository.save({
       username,
-      hashedPassword,
-      type,
+      email,
+      password,
       githubhandle,
     });
   }
