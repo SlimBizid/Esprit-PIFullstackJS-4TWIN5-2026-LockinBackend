@@ -25,14 +25,26 @@ export class UserService {
       return false;
     }
   }
+  async findEmailExists(email: string): Promise<Boolean> {
+    const user = await this.userRepository.findOneBy({ email });
+    if (user) {
+      return true;
+    } else {
+      return false;
+    }
+  }
   async CreateUser(
     username: string,
+    email: string,
     password: string,
     type: UserType,
     githubhandle?: string,
   ) {
     if (await this.findUsernameExists(username)) {
       throw new HttpException('Username already exists', HttpStatus.CONFLICT);
+    }
+    if (await this.findEmailExists(email)) {
+      throw new HttpException('Email already exists', HttpStatus.CONFLICT);
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     await this.userRepository.save({
