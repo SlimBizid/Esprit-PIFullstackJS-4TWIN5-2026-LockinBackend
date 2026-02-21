@@ -60,4 +60,12 @@ export class AuthService {
 
     return this.login(user as User); 
   }
+  async SignUp(
+    username: string,
+    email: string,
+    password: string,
+    githubHandle?: string,
+  ): Promise<void> {
+    return this.userService.CreateUser(username, email, password, githubHandle);
+  }
 }
