@@ -6,7 +6,12 @@ import { SignUpDto } from './dto/signUpDto.entity';
 export class AuthController {
   constructor(private authService: AuthService) {}
   @Post('signup')
-  signIn(@Body() user: SignUpDto) {
-    return this.authService.SignUp(user.username, user.email, user.password);
+  signUp(@Body() user: SignUpDto) {
+    return this.authService.SignUp(
+      user.username,
+      user.email,
+      user.password,
+      user.githubHandle,
+    );
   }
 }

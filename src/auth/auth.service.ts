@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { UserType } from 'src/user/enums/user-type.enum';
 import { UserService } from 'src/user/user.service';
 
 @Injectable()
