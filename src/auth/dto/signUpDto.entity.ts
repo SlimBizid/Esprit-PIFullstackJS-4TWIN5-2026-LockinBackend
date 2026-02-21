@@ -11,5 +11,5 @@ export class SignUpDto {
   username: string;
 
   @IsOptional()
-  githubHandle: string;
+  githubHandle?: string;
 }
