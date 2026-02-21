@@ -12,23 +12,22 @@ export class UserService {
   ) {}
 
   
-  async findByUsername(username: string): Promise<User | null> {
-    return this.userRepository.findOne({
+   async findByUsername(username: string): Promise<User | null> {
+    return await this.userRepository.findOne({
       where: { username },
-      select: ['id', 'username', 'password', 'email' ,'type'], 
     });
   }
 
-  
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({
+    return await this.userRepository.findOne({
       where: { email },
-      select: ['id', 'username', 'password', 'email' ,'type'],
     });
   }
 
-  
-    async validatePassword(user: User, plaintextPassword: string): Promise<boolean> {
-    return bcrypt.compare(plaintextPassword, user.password);
+  async validatePassword(
+    user: User,
+    plaintextPassword: string,
+  ): Promise<boolean> {
+    return await bcrypt.compare(plaintextPassword, user.password);
   }
 }

@@ -29,11 +29,28 @@ export class AuthService {
 
   
   async login(user: User) {
-    const payload = { username: user.username, sub: user.id };
+    const payload = {
+    username: user.username,
+    email: user.email,
+    type: user.type,
+    githubHandle: user.githubHandle,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+     };
+     const accessToken = this.jwtService.sign(payload, {
+    expiresIn: '30m',
+  });
 
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+  const refreshToken = this.jwtService.sign(payload, {
+    expiresIn: '7d',
+  });
+
+  return {
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  };
+
+   
   }
 
   
