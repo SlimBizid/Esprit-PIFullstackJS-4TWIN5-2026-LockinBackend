@@ -25,6 +25,9 @@ export class User {
   @Column({ nullable: true })
   githubHandle: string;
 
+  @Column({ unique: true })
+  email: string;
+
   @Column({ type: 'enum', enum: UserType, default: UserType.PLAYER })
   type: UserType;
 
