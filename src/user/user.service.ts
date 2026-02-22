@@ -1,8 +1,9 @@
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
-import { HttpException, Injectable, HttpStatus } from '@nestjs/common';
+import { HttpException, Injectable, HttpStatus, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { UserType } from './enums/user-type.enum';
 
 @Injectable()
 export class UserService {
@@ -50,7 +51,7 @@ export class UserService {
     username: string,
     email: string,
     plaintextpassword: string,
-    githubhandle?: string,
+    githubHandle?: string,
   ) {
     if (await this.findUsernameExists(username)) {
       throw new HttpException('Username already exists', HttpStatus.CONFLICT);
@@ -63,7 +64,44 @@ export class UserService {
       username,
       email,
       password,
-      githubhandle,
+      githubHandle,
     });
+  }
+
+  async findAll(page: number = 1, limit: number = 10, role: string) {
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await this.userRepository.findAndCount({
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+
+    const data = users.map((user) => {
+      if (role === 'admin') {
+        return user;
+      }
+      return {
+        username: user.username,
+        githubHandle: user.githubHandle,
+        type: user.type,
+      };
+    });
+
+    return {
+      data,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit),
+    };
+  }
+
+  async updateUserRole(id: string, updated_role: UserType) {
+    const user = await this.userRepository.findOne({ where: { id } });
+
+    if (!user) throw new NotFoundException(`Couldn't find user ${id}`);
+
+    user.type = updated_role;
+    return this.userRepository.save(user);
   }
 }
