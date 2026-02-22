@@ -1,8 +1,13 @@
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
-import { HttpException, Injectable, HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  Injectable,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { UserType } from './enums/user-type.enum';
 
 @Injectable()
@@ -68,10 +73,23 @@ export class UserService {
     });
   }
 
-  async findAll(page: number = 1, limit: number = 10, role: string) {
+  async findAll(
+    page: number = 1,
+    limit: number = 10,
+    role: string,
+    type?: UserType,
+    search?: string,
+  ) {
     const skip = (page - 1) * limit;
 
+    const where: any = {};
+
+    if (type) where.type = type;
+
+    if (search) where.username = ILike(`%${search}%`);
+
     const [users, total] = await this.userRepository.findAndCount({
+      where,
       skip,
       take: limit,
       order: { createdAt: 'DESC' },
