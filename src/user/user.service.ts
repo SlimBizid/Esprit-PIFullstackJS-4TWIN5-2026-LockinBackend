@@ -1,16 +1,8 @@
-import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
-import {
-  HttpException,
-  Injectable,
-  NotFoundException,
-  HttpStatus,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import { HttpException, Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserType } from './enums/user-type.enum';
 
 @Injectable()
 export class UserService {
@@ -19,8 +11,7 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  
-   async findByUsername(username: string): Promise<User | null> {
+  async findByUsername(username: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { username },
     });
@@ -38,7 +29,7 @@ export class UserService {
   ): Promise<boolean> {
     return await bcrypt.compare(plaintextPassword, user.password);
   }
-}
+
   async findUsernameExists(username: string): Promise<Boolean> {
     const user = await this.userRepository.findOneBy({ username });
     if (user) {
