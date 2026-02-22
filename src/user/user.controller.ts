@@ -1,6 +1,18 @@
-import { Controller, Get, UseGuards, Request, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Request,
+  NotFoundException,
+  Patch,
+  Query,
+  Body,
+  Param,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
+import { UserType } from './enums/user-type.enum';
 
 @Controller('users')
 export class UserController {
@@ -11,17 +23,42 @@ export class UserController {
   async getProfile(@Request() req) {
     const user = await this.userService.findByUsername(req.user.username);
 
-   if (!user) {
-    throw new NotFoundException('User not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      username: user.username,
+      email: user.email,
+      type: user.type,
+      githubHandle: user.githubHandle,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  return {
-    username: user.username,
-    email: user.email,
-    type: user.type,
-    githubHandle: user.githubHandle,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async findAll(
+    @Request() req,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const requesterRole = req.user.type;
+    return this.userService.findAll(Number(page), Number(limit), requesterRole);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/role')
+  async updateRole(
+    @Param('id') id: string,
+    @Body('type') updated_role: UserType,
+    @Request() req,
+  ) {
+    if (req.user.type != UserType.ADMIN) {
+      throw new ForbiddenException();
+    }
+
+    return this.userService.updateUserRole(id, updated_role);
   }
 }
