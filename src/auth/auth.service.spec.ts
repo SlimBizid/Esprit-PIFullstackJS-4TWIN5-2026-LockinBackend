@@ -4,10 +4,12 @@ import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
 import { User } from '../user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
+import { EmailService } from '../email/email.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: jest.Mocked<JwtService>;
+  let emailService: jest.Mocked<EmailService>;
   let userRepository: any;
 
   beforeEach(async () => {
@@ -26,6 +28,12 @@ describe('AuthService', () => {
           },
         },
         {
+          provide: EmailService,
+          useValue: {
+            sendResetEmail: jest.fn(),
+          },
+        },
+        {
           provide: getRepositoryToken(User),
           useValue: {
             findOne: jest.fn(),
@@ -37,6 +45,7 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get(JwtService);
+    emailService = module.get(EmailService);
     userRepository = module.get(getRepositoryToken(User));
   });
 
@@ -55,24 +64,25 @@ describe('AuthService', () => {
       expect(result.message).toBe(
         'If email exists, password reset link will be sent',
       );
-      expect(result.resetToken).toBeUndefined();
+      expect(emailService.sendResetEmail).not.toHaveBeenCalled();
     });
 
-    it('should return reset token if user exists', async () => {
+    it('should send reset email if user exists', async () => {
       const mockUser = { id: '1', email: 'test@test.com' };
       const mockToken = 'jwt-reset-token';
 
       userRepository.findOne.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue(mockToken);
+      emailService.sendResetEmail.mockResolvedValue(undefined);
 
       const result = await service.forgotPassword({ email: 'test@test.com' });
 
       expect(result.message).toBe('Password reset link sent');
-      expect(result.resetToken).toBe(mockToken);
       expect(jwtService.sign).toHaveBeenCalledWith(
         { email: mockUser.email },
         { expiresIn: '1h' },
       );
+      expect(emailService.sendResetEmail).toHaveBeenCalledWith(mockUser.email, mockToken);
     });
   });
 
