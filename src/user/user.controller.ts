@@ -9,11 +9,14 @@ import {
   Body,
   Param,
   ForbiddenException,
+  ClassSerializerInterceptor,
+  UseInterceptors,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UserType } from './enums/user-type.enum';
 
+@UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
