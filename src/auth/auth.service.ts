@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserService } from '../user/user.service';
+import { EmailService } from '../email/email.service';
 import * as bcrypt from 'bcrypt';
 import { User } from '../user/entities/user.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -13,6 +14,7 @@ export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
+    private emailService: EmailService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
@@ -66,7 +68,7 @@ export class AuthService {
 
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
-  ): Promise<{ message: string; resetToken?: string }> {
+  ): Promise<{ message: string }> {
     const { email } = forgotPasswordDto;
 
     const user = await this.userRepository.findOne({
@@ -82,9 +84,10 @@ export class AuthService {
       { expiresIn: '1h' },
     );
 
+    await this.emailService.sendResetEmail(user.email, resetToken);
+
     return { 
       message: 'Password reset link sent',
-      resetToken,
     };
   }
 
