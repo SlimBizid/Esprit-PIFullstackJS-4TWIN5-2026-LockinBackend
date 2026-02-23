@@ -71,9 +71,7 @@ export class AuthService {
   ): Promise<{ message: string }> {
     const { email } = forgotPasswordDto;
 
-    const user = await this.userRepository.findOne({
-      where: { email },
-    });
+    const user = await this.userService.findByEmail(email);
 
     
     if(user){
@@ -98,9 +96,8 @@ export class AuthService {
       const payload = this.jwtService.verify(token);
       const email = payload.email;
 
-      const user = await this.userRepository.findOne({
-        where: { email },
-      });
+    
+    const user = await this.userService.findByEmail(email);
 
       if (!user) {
         throw new BadRequestException('User not found');

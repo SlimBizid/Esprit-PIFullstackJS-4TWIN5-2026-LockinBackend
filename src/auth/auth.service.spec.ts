@@ -5,12 +5,14 @@ import { UserService } from '../user/user.service';
 import { User } from '../user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
+import { Repository } from 'typeorm';
 
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: jest.Mocked<JwtService>;
   let emailService: jest.Mocked<EmailService>;
-  let userRepository: any;
+  let userService: jest.Mocked<UserService>;
+  let userRepository: jest.Mocked<Repository<User>>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,8 +20,12 @@ describe('AuthService', () => {
         AuthService,
         {
           provide: UserService,
-          useValue: { CreateUser: jest.fn() },
+          useValue: {
+          CreateUser: jest.fn(),
+          findByEmail: jest.fn(),
+          updatePassword: jest.fn(),
         },
+},
         {
           provide: JwtService,
           useValue: {
@@ -39,13 +45,15 @@ describe('AuthService', () => {
             findOne: jest.fn(),
             save: jest.fn(),
           },
-        },
+        }
+        
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     jwtService = module.get(JwtService);
     emailService = module.get(EmailService);
+    userService = module.get(UserService);
     userRepository = module.get(getRepositoryToken(User));
   });
 
@@ -58,7 +66,7 @@ describe('AuthService', () => {
     'If email exists, password reset link will be sent';
     
     it('should return generic message if user does not exist', async () => {
-    userRepository.findOne.mockResolvedValue(null);
+    userService.findByEmail.mockResolvedValue(null);
 
     const result = await service.forgotPassword({
       email: 'nonexistent@test.com',
@@ -69,10 +77,14 @@ describe('AuthService', () => {
     });
 
     it('should send reset email if user exists', async () => {
-      const mockUser = { id: '1', email: 'test@test.com' };
+      const mockUser = {
+        id: '1',
+        email: 'test@test.com',
+       password: 'oldpass',
+      } as User;
       const mockToken = 'jwt-reset-token';
 
-      userRepository.findOne.mockResolvedValue(mockUser);
+      userService.findByEmail.mockResolvedValue(mockUser);
       jwtService.sign.mockReturnValue(mockToken);
       emailService.sendResetEmail.mockResolvedValue(undefined);
 
@@ -102,7 +114,7 @@ describe('AuthService', () => {
     it('should throw error if user not found', async () => {
       const mockPayload = { email: 'test@test.com' };
       jwtService.verify.mockReturnValue(mockPayload);
-      userRepository.findOne.mockResolvedValue(null);
+      userService.findByEmail.mockResolvedValue(null);
 
       await expect(
         service.resetPassword({ token: 'valid-token', newPassword: 'newpass123' }),
@@ -111,10 +123,14 @@ describe('AuthService', () => {
 
     it('should reset password successfully', async () => {
       const mockPayload = { email: 'test@test.com' };
-      const mockUser = { id: '1', email: 'test@test.com', password: 'oldpass' };
+      const mockUser = {
+        id: '1',
+        email: 'test@test.com',
+        password: 'oldpass',
+      } as User;
 
       jwtService.verify.mockReturnValue(mockPayload);
-      userRepository.findOne.mockResolvedValue(mockUser);
+      userService.findByEmail.mockResolvedValue(mockUser);
       userRepository.save.mockResolvedValue(mockUser);
 
       const result = await service.resetPassword({
