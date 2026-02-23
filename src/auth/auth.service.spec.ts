@@ -54,16 +54,17 @@ describe('AuthService', () => {
   });
 
   describe('forgotPassword', () => {
-    it('should return message if user does not exist', async () => {
-      userRepository.findOne.mockResolvedValue(null);
+    const expectedMessage =
+    'If email exists, password reset link will be sent';
+    
+    it('should return generic message if user does not exist', async () => {
+    userRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.forgotPassword({
-        email: 'nonexistent@test.com',
-      });
+    const result = await service.forgotPassword({
+      email: 'nonexistent@test.com',
+    });
+      expect(result.message).toBe(expectedMessage);
 
-      expect(result.message).toBe(
-        'If email exists, password reset link will be sent',
-      );
       expect(emailService.sendResetEmail).not.toHaveBeenCalled();
     });
 
@@ -77,7 +78,8 @@ describe('AuthService', () => {
 
       const result = await service.forgotPassword({ email: 'test@test.com' });
 
-      expect(result.message).toBe('Password reset link sent');
+      expect(result.message).toBe(expectedMessage);
+
       expect(jwtService.sign).toHaveBeenCalledWith(
         { email: mockUser.email },
         { expiresIn: '1h' },

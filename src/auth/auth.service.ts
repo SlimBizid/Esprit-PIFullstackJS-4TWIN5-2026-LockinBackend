@@ -75,19 +75,17 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user) {
-      return { message: 'If email exists, password reset link will be sent' };
+    
+    if(user){
+      const resetToken = this.jwtService.sign(
+        { email: user.email },
+        { expiresIn: '1h' },
+      );
+
+      await this.emailService.sendResetEmail(user.email, resetToken);
     }
-
-    const resetToken = this.jwtService.sign(
-      { email: user.email },
-      { expiresIn: '1h' },
-    );
-
-    await this.emailService.sendResetEmail(user.email, resetToken);
-
     return { 
-      message: 'Password reset link sent',
+      message: 'If email exists, password reset link will be sent',
     };
   }
 
