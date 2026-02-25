@@ -1,33 +1,37 @@
-import { Controller, Delete, Patch, Param } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Patch,
+  Param,
+  UseGuards,
+  Request,
+  ForbiddenException,
+} from '@nestjs/common';
+
 import { UserService } from './user.service';
-import { UseGuards, Request, ForbiddenException } from '@nestjs/common';
-import {AuthGuard} from '@nestjs/passport'; 
-
-
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { UserType } from './enums/user-type.enum';
 
 @Controller('user')
+@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @UseGuards(AuthGuard('jwt'))
-@Delete(':id')
-async deleteUser(@Param('id') id: string, @Request() req) {
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string, @Request() req) {
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admin can delete users');
+    }
 
-  if (req.user.type !== 'ADMIN') {
-    throw new ForbiddenException('Only admin can delete users');
+    return this.userService.softRemove(id);
   }
 
-  return this.userService.softRemove(id);
-}
+  @Patch('restore/:id')
+  async restoreUser(@Param('id') id: string, @Request() req) {
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admin can restore users');
+    }
 
- @UseGuards(AuthGuard('jwt'))
-@Patch('restore/:id')
-async restoreUser(@Param('id') id: string, @Request() req) {
-
-  if (req.user.type !== 'ADMIN') {
-    throw new ForbiddenException('Only admin can restore users');
+    return this.userService.restore(id);
   }
-
-  return this.userService.restore(id);
-}
 }
