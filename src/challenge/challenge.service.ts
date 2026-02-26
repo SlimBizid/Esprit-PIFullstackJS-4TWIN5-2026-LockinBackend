@@ -5,10 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, IsNull, Not, Repository } from 'typeorm';
 import { Challenge } from './entities/challenge.entity';
 import { ChallengeDifficulty } from './enums/challenge-difficulty.enums';
 import { ChallengeType } from './enums/challenge-type.enums';
+import { UserType } from 'src/user/enums/user-type.enum';
+import { ChallengeTopic } from './enums/challenge-topic.enums';
 
 @Injectable()
 export class ChallengeService {
@@ -18,11 +20,13 @@ export class ChallengeService {
   ) {}
 
   async findAll(
+    role: UserType,
     page: number = 1,
     limit: number = 10,
     challenge_difficulty?: ChallengeDifficulty,
     challenge_type?: ChallengeType,
     search?: string,
+    deleted?: boolean,
   ) {
     if (page <= 0) page = 1;
     if (limit <= 0) limit = 10;
@@ -37,11 +41,16 @@ export class ChallengeService {
 
     if (search) where.challenge_title = ILike(`%${search}%`);
 
+    if (deleted !== undefined && role == UserType.ADMIN) {
+      where.deletedAt = deleted ? Not(IsNull()) : IsNull();
+    }
+
     const [challenges, total] = await this.challengeRepository.findAndCount({
       where,
       skip,
       take: limit,
       order: { challenge_title: 'DESC' },
+      withDeleted: deleted,
     });
 
     const data = challenges.map((challenge) => {
@@ -85,6 +94,7 @@ export class ChallengeService {
     challenge_content: string,
     challenge_difficulty: ChallengeDifficulty,
     challenge_type: ChallengeType,
+    topics: ChallengeTopic[],
     challenge_acceptance_rate?: number,
   ) {
     if (await this.findByTitle(challenge_title)) {
@@ -93,12 +103,29 @@ export class ChallengeService {
         HttpStatus.CONFLICT,
       );
     }
+
+    if (!topics || topics.length === 0)
+      throw new HttpException(
+        `You need at least one topic for this challenge e.g: "Dynamic Programming"`,
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+
+    if (
+      challenge_acceptance_rate != undefined &&
+      (challenge_acceptance_rate < 0 || challenge_acceptance_rate > 100)
+    )
+      throw new HttpException(
+        'Acceptance rate must be a percentage',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+
     await this.challengeRepository.save({
       challenge_title,
       challenge_content,
       challenge_difficulty,
       challenge_type,
       challenge_acceptance_rate,
+      topics,
     });
   }
 
@@ -120,5 +147,14 @@ export class ChallengeService {
       challenge_difficulty,
       challenge_type,
     });
+  }
+
+  async deleteChallenge(id: number) {
+    if (!(await this.findById(id)))
+      throw new NotFoundException(
+        `Failed to find this challenge, can't delete.`,
+      );
+
+    await this.challengeRepository.softDelete(id);
   }
 }

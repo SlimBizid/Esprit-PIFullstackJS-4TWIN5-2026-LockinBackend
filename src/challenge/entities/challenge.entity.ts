@@ -9,6 +9,7 @@ import {
 import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
 import { Exclude } from 'class-transformer';
+import { ChallengeTopic } from '../enums/challenge-topic.enums';
 
 @Entity('challenges')
 export class Challenge {
@@ -27,8 +28,11 @@ export class Challenge {
   @Column()
   challenge_difficulty: ChallengeDifficulty;
 
-  @Column()
+  @Column({ default: 100 })
   challenge_acceptance_rate: number;
+
+  @Column()
+  topics: ChallengeTopic[];
 
   @CreateDateColumn()
   createdAt: Date;

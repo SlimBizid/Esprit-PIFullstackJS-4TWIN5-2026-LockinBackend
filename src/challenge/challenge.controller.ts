@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Get,
   Param,
+  ParseBoolPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -17,6 +18,7 @@ import { ChallengeDifficulty } from './enums/challenge-difficulty.enums';
 import { ChallengeType } from './enums/challenge-type.enums';
 import { UserType } from 'src/user/enums/user-type.enum';
 import { User } from 'src/user/entities/user.entity';
+import { ChallengeTopic } from './enums/challenge-topic.enums';
 
 @Controller('challenge')
 @UseGuards(JwtAuthGuard)
@@ -25,18 +27,22 @@ export class ChallengeController {
 
   @Get()
   async getChallenges(
+    @Request() req: Request & { user: User },
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('challenge_difficulty') challenge_difficulty?: ChallengeDifficulty,
     @Query('challenge_type') challenge_type?: ChallengeType,
     @Query('search') search?: string,
+    @Query('deleted', new ParseBoolPipe({ optional: true })) deleted?: boolean,
   ) {
     return this.challengeService.findAll(
+      req.user.type,
       Number(page),
       Number(limit),
       challenge_difficulty,
       challenge_type,
       search,
+      deleted,
     );
   }
 
@@ -47,6 +53,7 @@ export class ChallengeController {
     @Body('challenge_type') challenge_type: ChallengeType,
     @Body('challenge_difficulty') challenge_difficulty: ChallengeDifficulty,
     @Body('challenge_content') challenge_content: string,
+    @Body('topics') topics: ChallengeTopic[],
     @Body('challenge_acceptance_rate') challenge_acceptance_rate?: number,
   ) {
     if (req.user.type != UserType.ADMIN)
@@ -58,6 +65,7 @@ export class ChallengeController {
       challenge_content,
       challenge_difficulty,
       challenge_type,
+      topics,
       challenge_acceptance_rate,
     );
   }
