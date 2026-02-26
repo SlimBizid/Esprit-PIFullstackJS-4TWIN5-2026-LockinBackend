@@ -27,6 +27,9 @@ export class Challenge {
   @Column()
   challenge_difficulty: ChallengeDifficulty;
 
+  @Column()
+  challenge_acceptance_rate: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

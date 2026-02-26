@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChallengeController } from './challenge.controller';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Challenge } from './entities/challenge.entity';
+import { ChallengeService } from './challenge.service';
 
 describe('ChallengeController', () => {
   let controller: ChallengeController;
@@ -11,9 +10,15 @@ describe('ChallengeController', () => {
       controllers: [ChallengeController],
       providers: [
         {
-          provide: getRepositoryToken(Challenge),
+          provide: ChallengeService,
           useValue: {
-            findOne: jest.fn(),
+            findAll: jest.fn(),
+            findById: jest.fn(),
+            findByTitle: jest.fn(),
+            findByType: jest.fn(),
+            findByDifficulty: jest.fn(),
+            createChallenge: jest.fn(),
+            updateChallenge: jest.fn(),
           },
         },
       ],
