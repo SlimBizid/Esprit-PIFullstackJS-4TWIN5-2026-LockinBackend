@@ -25,6 +25,7 @@ import { ChallengeService } from './challenge/challenge.service';
       entities: [User, Challenge],
       synchronize: true,
     }),
+    TypeOrmModule.forFeature([Challenge]),
     UserModule,
     AuthModule,
   ],

@@ -32,10 +32,10 @@ export class ChallengeController {
 
   @Get()
   async getChallenges(
-    @Request() req: Request & { user: { role: UserType } },
+    @Request() req: Request & { user: { type: UserType } },
     @Query() queryDto: ChallengeQueryDto,
   ): Promise<any> {
-    const userRole = req.user?.role || UserType.PLAYER;
+    const userRole = req.user?.type || UserType.PLAYER;
 
     const result = await this.challengeService.findAll(queryDto, userRole);
 
@@ -45,9 +45,9 @@ export class ChallengeController {
   @Get(':id')
   async getChallengeById(
     @Param('id', ParseIntPipe) id: number,
-    @Request() req: Request & { user: { role: UserType } },
+    @Request() req: Request & { user: { type: UserType } },
   ): Promise<ChallengeResponseDto> {
-    const userRole = req.user?.role || UserType.PLAYER;
+    const userRole = req.user?.type || UserType.PLAYER;
 
     return await this.challengeService.findOne(id, userRole);
   }
@@ -55,9 +55,9 @@ export class ChallengeController {
   @Post('add')
   async postChallenge(
     @Body() createChallengeDto: CreateChallengeDto,
-    @Request() req: Request & { user: { role: UserType } },
+    @Request() req: Request & { user: { type: UserType } },
   ): Promise<ChallengeResponseDto> {
-    if (req.user?.role !== UserType.ADMIN) {
+    if (req.user?.type !== UserType.ADMIN) {
       throw new ForbiddenException(
         'Only administrators can create challenges.',
       );
@@ -70,9 +70,9 @@ export class ChallengeController {
   async patchChallenge(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateChallengeDto: UpdateChallengeDto,
-    @Request() req: Request & { user: { role: UserType } },
+    @Request() req: Request & { user: { type: UserType } },
   ): Promise<ChallengeResponseDto> {
-    if (req.user?.role !== UserType.ADMIN) {
+    if (req.user?.type !== UserType.ADMIN) {
       throw new ForbiddenException('Only administrators can edit challenges.');
     }
 
@@ -82,9 +82,9 @@ export class ChallengeController {
   @Patch(':id/restore')
   async restoreChallenge(
     @Param('id', ParseIntPipe) id: number,
-    @Request() req: Request & { user: { role: UserType } },
+    @Request() req: Request & { user: { type: UserType } },
   ): Promise<{ message: string }> {
-    if (req.user?.role !== UserType.ADMIN) {
+    if (req.user?.type !== UserType.ADMIN) {
       throw new ForbiddenException(
         'Only administrators can restore challenges.',
       );
@@ -101,9 +101,9 @@ export class ChallengeController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteChallenge(
     @Param('id', ParseIntPipe) id: number,
-    @Request() req: Request & { user: { role: UserType } },
+    @Request() req: Request & { user: { type: UserType } },
   ): Promise<void> {
-    if (req.user?.role !== UserType.ADMIN) {
+    if (req.user?.type !== UserType.ADMIN) {
       throw new ForbiddenException(
         'Only administrators can delete challenges.',
       );
