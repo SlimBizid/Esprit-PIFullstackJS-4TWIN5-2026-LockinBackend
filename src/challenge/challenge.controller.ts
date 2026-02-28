@@ -24,7 +24,7 @@ import { ChallengeResponseDto } from './dto/challenge-response.dto';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 
-@Controller('challenge')
+@Controller('challenges')
 @UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(JwtAuthGuard)
 export class ChallengeController {
