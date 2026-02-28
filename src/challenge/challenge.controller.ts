@@ -1,95 +1,114 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
-  ParseBoolPipe,
   ParseIntPipe,
   Patch,
   Post,
   Query,
   Request,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ChallengeService } from './challenge.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { ChallengeDifficulty } from './enums/challenge-difficulty.enums';
-import { ChallengeType } from './enums/challenge-type.enums';
 import { UserType } from 'src/user/enums/user-type.enum';
-import { User } from 'src/user/entities/user.entity';
-import { ChallengeTopic } from './enums/challenge-topic.enums';
+import { ChallengeQueryDto } from './dto/get-challenges-query.dto';
+import { ChallengeResponseDto } from './dto/challenge-response.dto';
+import { CreateChallengeDto } from './dto/create-challenge.dto';
+import { UpdateChallengeDto } from './dto/update-challenge.dto';
 
 @Controller('challenge')
+@UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(JwtAuthGuard)
 export class ChallengeController {
   constructor(private challengeService: ChallengeService) {}
 
   @Get()
   async getChallenges(
-    @Request() req: Request & { user: User },
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('challenge_difficulty') challenge_difficulty?: ChallengeDifficulty,
-    @Query('challenge_type') challenge_type?: ChallengeType,
-    @Query('search') search?: string,
-    @Query('deleted', new ParseBoolPipe({ optional: true })) deleted?: boolean,
-  ) {
-    return this.challengeService.findAll(
-      req.user.type,
-      Number(page),
-      Number(limit),
-      challenge_difficulty,
-      challenge_type,
-      search,
-      deleted,
-    );
+    @Request() req: Request & { user: { role: UserType } },
+    @Query() queryDto: ChallengeQueryDto,
+  ): Promise<any> {
+    const userRole = req.user?.role || UserType.PLAYER;
+
+    const result = await this.challengeService.findAll(queryDto, userRole);
+
+    return result;
   }
 
-  @Post('/add')
+  @Get(':id')
+  async getChallengeById(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: Request & { user: { role: UserType } },
+  ): Promise<ChallengeResponseDto> {
+    const userRole = req.user?.role || UserType.PLAYER;
+
+    return await this.challengeService.findOne(id, userRole);
+  }
+
+  @Post('add')
   async postChallenge(
-    @Request() req: Request & { user: User },
-    @Body('challenge_title') challenge_title: string,
-    @Body('challenge_type') challenge_type: ChallengeType,
-    @Body('challenge_difficulty') challenge_difficulty: ChallengeDifficulty,
-    @Body('challenge_content') challenge_content: string,
-    @Body('topics') topics: ChallengeTopic[],
-    @Body('challenge_acceptance_rate') challenge_acceptance_rate?: number,
-  ) {
-    if (req.user.type != UserType.ADMIN)
+    @Body() createChallengeDto: CreateChallengeDto,
+    @Request() req: Request & { user: { role: UserType } },
+  ): Promise<ChallengeResponseDto> {
+    if (req.user?.role !== UserType.ADMIN) {
       throw new ForbiddenException(
-        `As a ${req.user.type} you lack the permissions to perform this action`,
+        'Only administrators can create challenges.',
       );
-    await this.challengeService.createChallenge(
-      challenge_title,
-      challenge_content,
-      challenge_difficulty,
-      challenge_type,
-      topics,
-      challenge_acceptance_rate,
-    );
+    }
+
+    return await this.challengeService.create(createChallengeDto);
   }
 
   @Patch(':id/edit')
   async patchChallenge(
-    @Request() req: Request & { user: User },
     @Param('id', ParseIntPipe) id: number,
-    @Body('challenge_title') challenge_title?: string,
-    @Body('challenge_type') challenge_type?: ChallengeType,
-    @Body('challenge_difficulty') challenge_difficulty?: ChallengeDifficulty,
-    @Body('challenge_content') challenge_content?: string,
-  ) {
-    if (req.user.type != UserType.ADMIN)
-      throw new ForbiddenException(
-        `As a ${req.user.type} you lack the permissions to perform this action`,
-      );
+    @Body() updateChallengeDto: UpdateChallengeDto,
+    @Request() req: Request & { user: { role: UserType } },
+  ): Promise<ChallengeResponseDto> {
+    if (req.user?.role !== UserType.ADMIN) {
+      throw new ForbiddenException('Only administrators can edit challenges.');
+    }
 
-    await this.challengeService.updateChallenge(
-      id,
-      challenge_title,
-      challenge_content,
-      challenge_difficulty,
-      challenge_type,
-    );
+    return await this.challengeService.update(id, updateChallengeDto);
+  }
+
+  @Patch(':id/restore')
+  async restoreChallenge(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: Request & { user: { role: UserType } },
+  ): Promise<{ message: string }> {
+    if (req.user?.role !== UserType.ADMIN) {
+      throw new ForbiddenException(
+        'Only administrators can restore challenges.',
+      );
+    }
+
+    await this.challengeService.restore(id);
+
+    return {
+      message: `Challenge #${id} has been successfully restored.`,
+    };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteChallenge(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: Request & { user: { role: UserType } },
+  ): Promise<void> {
+    if (req.user?.role !== UserType.ADMIN) {
+      throw new ForbiddenException(
+        'Only administrators can delete challenges.',
+      );
+    }
+
+    await this.challengeService.softDelete(id);
   }
 }

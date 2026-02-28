@@ -1,16 +1,16 @@
 import {
-  HttpException,
-  HttpStatus,
+  ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, ILike, IsNull, Not, Repository } from 'typeorm';
 import { Challenge } from './entities/challenge.entity';
-import { ChallengeDifficulty } from './enums/challenge-difficulty.enums';
-import { ChallengeType } from './enums/challenge-type.enums';
 import { UserType } from 'src/user/enums/user-type.enum';
-import { ChallengeTopic } from './enums/challenge-topic.enums';
+import { ChallengeQueryDto } from './dto/get-challenges-query.dto';
+import { CreateChallengeDto } from './dto/create-challenge.dto';
+import { UpdateChallengeDto } from './dto/update-challenge.dto';
 
 @Injectable()
 export class ChallengeService {
@@ -19,142 +19,132 @@ export class ChallengeService {
     private challengeRepository: Repository<Challenge>,
   ) {}
 
-  async findAll(
-    role: UserType,
-    page: number = 1,
-    limit: number = 10,
-    challenge_difficulty?: ChallengeDifficulty,
-    challenge_type?: ChallengeType,
-    search?: string,
-    deleted?: boolean,
-  ) {
-    if (page <= 0) page = 1;
-    if (limit <= 0) limit = 10;
+  async findAll(queryDto: ChallengeQueryDto, role: UserType) {
+    const {
+      page = 1,
+      limit = 10,
+      difficulty,
+      type,
+      search,
+      deleted,
+    } = queryDto;
 
     const skip = (page - 1) * limit;
 
     const where: FindOptionsWhere<Challenge> = {};
 
-    if (challenge_difficulty) where.challenge_difficulty = challenge_difficulty;
+    if (difficulty) where.difficulty = difficulty;
+    if (type) where.type = type;
 
-    if (challenge_type) where.challenge_type = challenge_type;
+    if (search) where.title = ILike(`%${search}%`);
 
-    if (search) where.challenge_title = ILike(`%${search}%`);
+    const isAdminQueryingDeleted = deleted === true && role === UserType.ADMIN;
 
-    if (deleted !== undefined && role == UserType.ADMIN) {
-      where.deletedAt = deleted ? Not(IsNull()) : IsNull();
+    if (isAdminQueryingDeleted) {
+      where.deletedAt = Not(IsNull());
     }
 
-    const [challenges, total] = await this.challengeRepository.findAndCount({
+    const [items, total] = await this.challengeRepository.findAndCount({
       where,
       skip,
       take: limit,
-      order: { challenge_title: 'DESC' },
-      withDeleted: deleted,
-    });
-
-    const data = challenges.map((challenge) => {
-      return challenge;
+      order: { createdAt: 'DESC' },
+      withDeleted: isAdminQueryingDeleted,
     });
 
     return {
-      data,
-      total,
-      page,
-      lastPage: Math.ceil(total / limit),
+      data: items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
     };
   }
 
-  async findById(id: number) {
-    return await this.challengeRepository.findOne({
+  async findOne(
+    id: number,
+    role: UserType = UserType.PLAYER,
+  ): Promise<Challenge> {
+    const challenge = await this.challengeRepository.findOne({
       where: { id },
+      withDeleted: role === UserType.ADMIN,
     });
+
+    if (!challenge) {
+      throw new NotFoundException(`Challenge with ID #${id} not found.`);
+    }
+
+    return challenge;
   }
 
-  async findByTitle(challenge_title: string) {
+  async findByTitle(title: string): Promise<Challenge | null> {
     return await this.challengeRepository.findOne({
-      where: { challenge_title },
+      where: { title },
+      withDeleted: true,
     });
   }
 
-  async findByType(challenge_type: ChallengeType) {
-    return await this.challengeRepository.find({
-      where: { challenge_type },
-    });
-  }
-
-  async findByDifficulty(challenge_difficulty: ChallengeDifficulty) {
-    return await this.challengeRepository.find({
-      where: { challenge_difficulty },
-    });
-  }
-
-  async createChallenge(
-    challenge_title: string,
-    challenge_content: string,
-    challenge_difficulty: ChallengeDifficulty,
-    challenge_type: ChallengeType,
-    topics: ChallengeTopic[],
-    challenge_acceptance_rate?: number,
-  ) {
-    if (await this.findByTitle(challenge_title)) {
-      throw new HttpException(
-        `A challenge with the title "${challenge_title}" already exists, if the content is different, change the name and post again`,
-        HttpStatus.CONFLICT,
+  async create(createDto: CreateChallengeDto): Promise<Challenge> {
+    const existingChallenge = await this.findByTitle(createDto.title);
+    if (existingChallenge) {
+      throw new ConflictException(
+        `A challenge with the title "${createDto.title}" already exists. Please choose a unique name.`,
       );
     }
 
-    if (!topics || topics.length === 0)
-      throw new HttpException(
-        `You need at least one topic for this challenge e.g: "Dynamic Programming"`,
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
-
-    if (
-      challenge_acceptance_rate != undefined &&
-      (challenge_acceptance_rate < 0 || challenge_acceptance_rate > 100)
-    )
-      throw new HttpException(
-        'Acceptance rate must be a percentage',
-        HttpStatus.UNPROCESSABLE_ENTITY,
-      );
-
-    await this.challengeRepository.save({
-      challenge_title,
-      challenge_content,
-      challenge_difficulty,
-      challenge_type,
-      challenge_acceptance_rate,
-      topics,
+    const newChallenge = this.challengeRepository.create({
+      ...createDto,
+      acceptanceRate: createDto.acceptanceRate ?? 100,
     });
+
+    try {
+      return await this.challengeRepository.save(newChallenge);
+    } catch {
+      throw new InternalServerErrorException(
+        `An unexpected error occurred while saving the challenge. `,
+      );
+    }
   }
 
-  async updateChallenge(
-    id: number,
-    challenge_title?: string,
-    challenge_content?: string,
-    challenge_difficulty?: ChallengeDifficulty,
-    challenge_type?: ChallengeType,
-  ) {
-    if (!(await this.findById(id)))
-      throw new NotFoundException(
-        `Failed to find this challenge, can't update.`,
-      );
+  async update(id: number, updateDto: UpdateChallengeDto): Promise<Challenge> {
+    const challenge = await this.findOne(id, UserType.ADMIN);
 
-    await this.challengeRepository.update(id, {
-      challenge_title,
-      challenge_content,
-      challenge_difficulty,
-      challenge_type,
+    if (updateDto.title && updateDto.title !== challenge.title) {
+      const existing = await this.findByTitle(updateDto.title);
+      if (existing) {
+        throw new ConflictException(
+          `Title "${updateDto.title}" is already taken.`,
+        );
+      }
+    }
+
+    const updatedChallenge = await this.challengeRepository.preload({
+      id: id,
+      ...updateDto,
     });
+
+    if (!updatedChallenge) {
+      throw new NotFoundException(`Challenge #${id} could not be preloaded.`);
+    }
+
+    return await this.challengeRepository.save(updatedChallenge);
   }
 
-  async deleteChallenge(id: number) {
-    if (!(await this.findById(id)))
-      throw new NotFoundException(
-        `Failed to find this challenge, can't delete.`,
-      );
-
+  async softDelete(id: number): Promise<void> {
+    await this.findOne(id, UserType.ADMIN);
     await this.challengeRepository.softDelete(id);
+  }
+
+  async restore(id: number): Promise<void> {
+    const result = await this.challengeRepository.restore(id);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(
+        `Challenge #${id} not found or is not currently deleted.`,
+      );
+    }
   }
 }

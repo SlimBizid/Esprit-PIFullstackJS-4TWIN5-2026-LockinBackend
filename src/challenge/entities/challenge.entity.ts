@@ -5,33 +5,35 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
-import { Exclude } from 'class-transformer';
 import { ChallengeTopic } from '../enums/challenge-topic.enums';
+import { Exclude } from 'class-transformer';
 
 @Entity('challenges')
 export class Challenge {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Index()
   @Column()
-  challenge_title: string;
+  title: string;
 
-  @Column()
-  challenge_type: ChallengeType;
+  @Column({ type: 'enum', enum: ChallengeType })
+  type: ChallengeType;
 
-  @Column()
-  challenge_content: string;
+  @Column({ type: 'text' })
+  content: string;
 
-  @Column()
-  challenge_difficulty: ChallengeDifficulty;
+  @Column({ type: 'enum', enum: ChallengeDifficulty })
+  difficulty: ChallengeDifficulty;
 
-  @Column({ default: 100 })
-  challenge_acceptance_rate: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 100 })
+  acceptanceRate: number;
 
-  @Column()
+  @Column({ type: 'enum', enum: ChallengeTopic, array: true, default: [] })
   topics: ChallengeTopic[];
 
   @CreateDateColumn()
