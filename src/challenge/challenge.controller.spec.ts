@@ -36,7 +36,7 @@ describe('ChallengeController', () => {
 
   describe('getChallenges', () => {
     it('should call service.findAll with player role', async () => {
-      const mockReq = { user: { role: UserType.PLAYER } };
+      const mockReq = { user: { type: UserType.PLAYER } };
       const queryDto = { page: 1, limit: 10 };
 
       await controller.getChallenges(mockReq as any, queryDto as any);
@@ -50,8 +50,8 @@ describe('ChallengeController', () => {
 
   describe('postChallenge (Admin Only)', () => {
     const createDto = { title: 'New' };
-    const adminReq = { user: { role: UserType.ADMIN } };
-    const playerReq = { user: { role: UserType.PLAYER } };
+    const adminReq = { user: { type: UserType.ADMIN } };
+    const playerReq = { user: { type: UserType.PLAYER } };
 
     it('should allow Admin to create', async () => {
       await controller.postChallenge(createDto as any, adminReq as any);
@@ -70,8 +70,8 @@ describe('ChallengeController', () => {
 
   describe('patchChallenge (Admin Only)', () => {
     const updateDto = { title: 'Updated' };
-    const adminReq = { user: { role: UserType.ADMIN } };
-    const playerReq = { user: { role: UserType.PLAYER } };
+    const adminReq = { user: { type: UserType.ADMIN } };
+    const playerReq = { user: { type: UserType.PLAYER } };
 
     it('should allow Admin to edit', async () => {
       await controller.patchChallenge(1, updateDto as any, adminReq as any);
@@ -88,7 +88,7 @@ describe('ChallengeController', () => {
 
   describe('restoreChallenge', () => {
     it('should call service.restore for Admin', async () => {
-      const adminReq = { user: { role: UserType.ADMIN } };
+      const adminReq = { user: { type: UserType.ADMIN } };
 
       await controller.restoreChallenge(1, adminReq as any);
 
@@ -98,7 +98,7 @@ describe('ChallengeController', () => {
 
   describe('deleteChallenge', () => {
     it('should call service.softDelete for Admin', async () => {
-      const adminReq = { user: { role: UserType.ADMIN } };
+      const adminReq = { user: { type: UserType.ADMIN } };
 
       await controller.deleteChallenge(1, adminReq as any);
 

@@ -2,6 +2,7 @@ import { Expose } from 'class-transformer';
 import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
 import { ChallengeTopic } from '../enums/challenge-topic.enums';
+import { ChallengeCaseDto } from './challenge-case.dto';
 
 export class ChallengeResponseDto {
   @Expose()
@@ -12,6 +13,18 @@ export class ChallengeResponseDto {
 
   @Expose()
   content: string;
+
+  @Expose()
+  examples: string[];
+
+  @Expose()
+  constraints: string[];
+
+  @Expose()
+  conditions: string[];
+
+  @Expose()
+  cases: ChallengeCaseDto[];
 
   @Expose()
   type: ChallengeType;

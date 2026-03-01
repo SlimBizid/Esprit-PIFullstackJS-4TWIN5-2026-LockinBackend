@@ -8,10 +8,13 @@ import {
   Min,
   ArrayMinSize,
   IsArray,
+  ValidateNested,
 } from 'class-validator';
 import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
 import { ChallengeTopic } from '../enums/challenge-topic.enums';
+import { Type } from 'class-transformer';
+import { ChallengeCaseDto } from './challenge-case.dto';
 
 export class CreateChallengeDto {
   @IsString()
@@ -21,6 +24,27 @@ export class CreateChallengeDto {
   @IsString()
   @IsNotEmpty({ message: 'Challenge content cannot be empty.' })
   content: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional() // don't freak out Slim, this is just to make it easier for development, we'll remove it in prod
+  examples: string[] = [];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  constraints: string[] = [];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  conditions: string[] = [];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChallengeCaseDto)
+  @IsOptional()
+  cases: ChallengeCaseDto[] = [];
 
   @IsEnum(ChallengeType, {
     message: 'Type must be one of: ' + Object.values(ChallengeType).join(', '),

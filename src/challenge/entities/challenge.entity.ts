@@ -27,6 +27,21 @@ export class Challenge {
   @Column({ type: 'text' })
   content: string;
 
+  @Column('text', { array: true, default: [] })
+  examples: string[];
+
+  @Column('text', { array: true, default: [] })
+  constraints: string[];
+
+  @Column('text', { array: true, default: [] })
+  conditions: string[];
+
+  @Column({ type: 'jsonb', default: [] })
+  cases: {
+    inputs: { type: string; value: string }[];
+    expectedOutput: string;
+  }[];
+
   @Column({ type: 'enum', enum: ChallengeDifficulty })
   difficulty: ChallengeDifficulty;
 
