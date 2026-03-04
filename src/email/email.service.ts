@@ -7,20 +7,20 @@ export class EmailService {
 
   constructor() {
     if (!process.env.EMAIL_SERVICE) {
-    throw new Error('EMAIL_SERVICE is not defined');
-  }
+      throw new Error('EMAIL_SERVICE is not defined');
+    }
 
-  if (!process.env.EMAIL_USER) {
-    throw new Error('EMAIL_USER is not defined');
-  }
+    if (!process.env.EMAIL_USER) {
+      throw new Error('EMAIL_USER is not defined');
+    }
 
-  if (!process.env.EMAIL_PASSWORD) {
-    throw new Error('EMAIL_PASSWORD is not defined');
-  }
+    if (!process.env.EMAIL_PASSWORD) {
+      throw new Error('EMAIL_PASSWORD is not defined');
+    }
 
-  if (!process.env.FRONTEND_URL) {
-    throw new Error('FRONTEND_URL is not defined');
-  }
+    if (!process.env.FRONTEND_URL) {
+      throw new Error('FRONTEND_URL is not defined');
+    }
     this.transporter = nodemailer.createTransport({
       service: process.env.EMAIL_SERVICE,
       auth: {

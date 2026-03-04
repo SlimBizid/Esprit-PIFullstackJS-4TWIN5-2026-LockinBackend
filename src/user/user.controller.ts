@@ -15,6 +15,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UserType } from './enums/user-type.enum';
+import { Request } from 'express';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
@@ -23,7 +24,7 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  async getProfile(@Request() req) {
+  async getProfile(@Request() req:Request  } }) {
     const user = await this.userService.findByUsername(req.user.username);
 
     if (!user) {
@@ -49,9 +50,9 @@ export class UserController {
     @Query('type') type?: UserType,
     @Query('search') search?: string,
   ) {
-    const requesterRole = req.user.type;
+    const requesterRole: UserType = req.user.type;
     return this.userService.findAll(
-      Number(page),
+             Number(page),
       Number(limit),
       requesterRole,
       type,
