@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -73,8 +77,7 @@ export class AuthService {
 
     const user = await this.userService.findByEmail(email);
 
-    
-    if(user){
+    if (user) {
       const resetToken = this.jwtService.sign(
         { email: user.email },
         { expiresIn: '1h' },
@@ -82,7 +85,7 @@ export class AuthService {
 
       await this.emailService.sendResetEmail(user.email, resetToken);
     }
-    return { 
+    return {
       message: 'If email exists, password reset link will be sent',
     };
   }
@@ -96,8 +99,7 @@ export class AuthService {
       const payload = this.jwtService.verify(token);
       const email = payload.email;
 
-    
-    const user = await this.userService.findByEmail(email);
+      const user = await this.userService.findByEmail(email);
 
       if (!user) {
         throw new BadRequestException('User not found');

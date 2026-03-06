@@ -21,11 +21,11 @@ describe('AuthService', () => {
         {
           provide: UserService,
           useValue: {
-          CreateUser: jest.fn(),
-          findByEmail: jest.fn(),
-          updatePassword: jest.fn(),
+            CreateUser: jest.fn(),
+            findByEmail: jest.fn(),
+            updatePassword: jest.fn(),
+          },
         },
-},
         {
           provide: JwtService,
           useValue: {
@@ -45,8 +45,7 @@ describe('AuthService', () => {
             findOne: jest.fn(),
             save: jest.fn(),
           },
-        }
-        
+        },
       ],
     }).compile();
 
@@ -62,15 +61,14 @@ describe('AuthService', () => {
   });
 
   describe('forgotPassword', () => {
-    const expectedMessage =
-    'If email exists, password reset link will be sent';
-    
-    it('should return generic message if user does not exist', async () => {
-    userService.findByEmail.mockResolvedValue(null);
+    const expectedMessage = 'If email exists, password reset link will be sent';
 
-    const result = await service.forgotPassword({
-      email: 'nonexistent@test.com',
-    });
+    it('should return generic message if user does not exist', async () => {
+      userService.findByEmail.mockResolvedValue(null);
+
+      const result = await service.forgotPassword({
+        email: 'nonexistent@test.com',
+      });
       expect(result.message).toBe(expectedMessage);
 
       expect(emailService.sendResetEmail).not.toHaveBeenCalled();
@@ -80,7 +78,7 @@ describe('AuthService', () => {
       const mockUser = {
         id: '1',
         email: 'test@test.com',
-       password: 'oldpass',
+        password: 'oldpass',
       } as User;
       const mockToken = 'jwt-reset-token';
 
@@ -96,7 +94,10 @@ describe('AuthService', () => {
         { email: mockUser.email },
         { expiresIn: '1h' },
       );
-      expect(emailService.sendResetEmail).toHaveBeenCalledWith(mockUser.email, mockToken);
+      expect(emailService.sendResetEmail).toHaveBeenCalledWith(
+        mockUser.email,
+        mockToken,
+      );
     });
   });
 
@@ -117,7 +118,10 @@ describe('AuthService', () => {
       userService.findByEmail.mockResolvedValue(null);
 
       await expect(
-        service.resetPassword({ token: 'valid-token', newPassword: 'newpass123' }),
+        service.resetPassword({
+          token: 'valid-token',
+          newPassword: 'newpass123',
+        }),
       ).rejects.toThrow('Invalid or expired reset token');
     });
 
