@@ -117,7 +117,7 @@ describe('UserService', () => {
         expect.objectContaining({
           username: 'testuser',
           email: 'test@test.com',
-          githubhandle: 'myhandle',
+          githubHandle: 'myhandle',
         }),
       );
     });

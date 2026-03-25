@@ -4,8 +4,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
+import { Challenge } from './challenge/entities/challenge.entity';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { ChallengeController } from './challenge/challenge.controller';
+import { ChallengeService } from './challenge/challenge.service';
 import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -21,14 +24,15 @@ import { ScheduleModule } from '@nestjs/schedule';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [User, BlacklistedToken],
+      entities: [User, BlacklistedToken, Challenge],
       synchronize: true,
     }),
+    TypeOrmModule.forFeature([Challenge]),
     UserModule,
     AuthModule,
     ScheduleModule.forRoot(),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, ChallengeController],
+  providers: [AppService, ChallengeService],
 })
 export class AppModule {}
