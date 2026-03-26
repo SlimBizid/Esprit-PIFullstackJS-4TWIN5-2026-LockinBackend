@@ -4,10 +4,15 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
+import { Challenge } from './challenge/entities/challenge.entity';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { CosmeticModule } from './cosmetic/cosmetic.module';
 import { Cosmetic } from './cosmetic/entities/cosmetic.entity';
+import { ChallengeController } from './challenge/challenge.controller';
+import { ChallengeService } from './challenge/challenge.service';
+import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -21,14 +26,16 @@ import { Cosmetic } from './cosmetic/entities/cosmetic.entity';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [User, Cosmetic],
+      entities: [User, Cosmetic, BlacklistedToken, Challenge],
       synchronize: true,
     }),
+    TypeOrmModule.forFeature([Challenge]),
     UserModule,
     AuthModule,
     CosmeticModule,
+    ScheduleModule.forRoot(),
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, ChallengeController],
+  providers: [AppService, ChallengeService],
 })
 export class AppModule {}

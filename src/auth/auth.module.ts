@@ -10,10 +10,13 @@ import { JwtStrategy } from './jwt.strategy';
 import { AuthController } from './auth.controller';
 import { User } from '../user/entities/user.entity';
 import { EmailModule } from '../email/email.module';
+import { BlacklistedToken } from './token-blacklist/token-blacklist.entity';
+import { TokenBlacklistService } from './token-blacklist/token-blacklist.service';
+import { RefreshTokenStrategy } from './refresh-token.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, BlacklistedToken]),
     UserModule,
     PassportModule,
     EmailModule,
@@ -25,7 +28,13 @@ import { EmailModule } from '../email/email.module';
       }),
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    TokenBlacklistService,
+    RefreshTokenStrategy,
+  ],
   exports: [AuthService],
   controllers: [AuthController],
 })
