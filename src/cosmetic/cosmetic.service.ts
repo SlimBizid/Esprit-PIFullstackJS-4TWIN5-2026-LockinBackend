@@ -11,9 +11,14 @@ export class CosmeticService {
   constructor(
     @InjectRepository(Cosmetic)
     private readonly cosmeticRepository: Repository<Cosmetic>,
-  ) {}
+  ) { }
 
   async create(dto: CreateCosmeticDto): Promise<Cosmetic> {
+    if (dto.achievementId) {
+      // TODO: Check if achievement with this UUID exists before creating cosmetic.
+      // Throw an error if it doesn't. 
+    }
+
     const cosmetic = this.cosmeticRepository.create({
       imageUrl: dto.imageUrl,
       cosmeticTitle: dto.cosmeticTitle,
@@ -58,6 +63,12 @@ export class CosmeticService {
 
   async update(id: string, dto: UpdateCosmeticDto): Promise<Cosmetic> {
     const cosmetic = await this.findOne(id);
+
+    if (dto.achievementId !== undefined) {
+      // TODO: Check if achievement with this UUID exists before updating cosmetic.
+      // Throw an error if it doesn't. 
+    }
+
     Object.assign(cosmetic, {
       ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
       ...(dto.cosmeticTitle !== undefined && {
