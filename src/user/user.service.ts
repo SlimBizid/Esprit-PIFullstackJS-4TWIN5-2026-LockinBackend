@@ -1,9 +1,10 @@
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import {
+  BadRequestException,
   HttpException,
-  Injectable,
   HttpStatus,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -127,5 +128,24 @@ export class UserService {
 
     user.type = updated_role;
     return this.userRepository.save(user);
+  }
+
+  async softRemove(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException(`Couldn't find user ${id}`);
+    return this.userRepository.softRemove(user);
+  }
+
+  async restore(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+    if (!user) throw new NotFoundException(`Couldn't find user ${id}`);
+    if (!user.deletedAt) {
+      throw new BadRequestException('User is not deleted');
+    }
+    await this.userRepository.restore(id);
+    return this.userRepository.findOne({ where: { id } });
   }
 }
