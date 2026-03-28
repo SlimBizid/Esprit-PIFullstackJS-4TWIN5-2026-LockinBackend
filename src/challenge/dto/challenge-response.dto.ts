@@ -15,6 +15,9 @@ export class ChallengeResponseDto {
   content: string;
 
   @Expose()
+  starterCode: string;
+
+  @Expose()
   examples: string[];
 
   @Expose()

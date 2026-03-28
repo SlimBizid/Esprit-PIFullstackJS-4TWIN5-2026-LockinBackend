@@ -25,6 +25,10 @@ export class CreateChallengeDto {
   @IsNotEmpty({ message: 'Challenge content cannot be empty.' })
   content: string;
 
+  @IsString()
+  @IsOptional()
+  starterCode?: string = '';
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional() // don't freak out Slim, this is just to make it easier for development, we'll remove it in prod
