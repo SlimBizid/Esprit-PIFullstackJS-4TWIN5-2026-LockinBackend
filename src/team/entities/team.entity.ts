@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   Index,
   OneToMany,
+  DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
@@ -20,6 +21,22 @@ export class Team {
   @CreateDateColumn()
   teamCreationDate: Date;
 
+  @DeleteDateColumn()
+  teamDeletionDate: Date;
+
   @OneToMany(() => User, (user) => user.team)
   users: User[];
+
+  @Column()
+  leaderId: string;
+
+  @Column({ type: 'json', default: [] })
+  pendingInvitations: string[];
+
+  @Column({
+    type: 'enum',
+    enum: ['PENDING', 'ACTIVE'],
+    default: 'PENDING',
+  })
+  status: 'PENDING' | 'ACTIVE';
 }
