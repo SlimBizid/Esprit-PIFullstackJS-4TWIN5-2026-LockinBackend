@@ -14,7 +14,7 @@ const mockEntry = (overrides = {}): LeaderboardEntry =>
     userId: 'user-uuid',
     totalScore: 0,
     challengeCompletions: 0,
-    scoreRank: 1,
+    lastLoginXpAt: null, 
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -90,122 +90,136 @@ describe('LeaderboardService', () => {
 
 
   describe('awardChallenge', () => {
-    it('awards EASY + SOLO: +50 score, +20 xp', async () => {
-      const entry = mockEntry();
-      const user  = mockUser();
+  it('awards EASY + SOLO: +50 score, +20 xp', async () => {
+    const entry = mockEntry();
+    const user  = mockUser();
 
-      mockLeaderboardRepo.findOne.mockResolvedValue(entry);
-      mockUserRepo.findOne.mockResolvedValue(user);
-      mockLeaderboardRepo.find.mockResolvedValue([entry]);
-      mockLeaderboardRepo.save.mockResolvedValue(entry);
-      mockUserRepo.save.mockResolvedValue(user);
-      mockLeaderboardRepo.findOne.mockResolvedValueOnce(entry).mockResolvedValueOnce(entry);
+    mockLeaderboardRepo.findOne.mockResolvedValue(entry);
+    mockUserRepo.findOne.mockResolvedValue(user);
+    mockLeaderboardRepo.save.mockResolvedValue(entry);
+    mockUserRepo.save.mockResolvedValue(user);
 
-      await service.awardChallenge({
-        userId: 'user-uuid',
+    await service.awardChallenge({
+      userId: 'user-uuid',
+      challengeId: 1,
+      difficulty: ChallengeDifficulty.EASY,
+      type: ChallengeType.SOLO,
+    });
+
+    expect(entry.totalScore).toBe(50);
+    expect(entry.challengeCompletions).toBe(1);
+    expect(user.xp).toBe(20);
+  });
+
+  it('awards MEDIUM + PVP: +150 score (100+50), +70 xp (50+20)', async () => {
+    const entry = mockEntry();
+    const user  = mockUser();
+
+    mockLeaderboardRepo.findOne.mockResolvedValue(entry);
+    mockUserRepo.findOne.mockResolvedValue(user);
+    mockLeaderboardRepo.save.mockResolvedValue(entry);
+    mockUserRepo.save.mockResolvedValue(user);
+
+    await service.awardChallenge({
+      userId: 'user-uuid',
+      challengeId: 2,
+      difficulty: ChallengeDifficulty.MEDIUM,
+      type: ChallengeType.PVP,
+    });
+
+    expect(entry.totalScore).toBe(150);
+    expect(user.xp).toBe(70);
+  });
+
+  it('awards HARD + TEAMS: +230 score (200+30), +110 xp (100+10)', async () => {
+    const entry = mockEntry();
+    const user  = mockUser();
+
+    mockLeaderboardRepo.findOne.mockResolvedValue(entry);
+    mockUserRepo.findOne.mockResolvedValue(user);
+    mockLeaderboardRepo.save.mockResolvedValue(entry);
+    mockUserRepo.save.mockResolvedValue(user);
+
+    await service.awardChallenge({
+      userId: 'user-uuid',
+      challengeId: 3,
+      difficulty: ChallengeDifficulty.HARD,
+      type: ChallengeType.TEAMS,
+    });
+
+    expect(entry.totalScore).toBe(230);
+    expect(user.xp).toBe(110);
+  });
+
+  it('throws NotFoundException if user or entry is missing', async () => {
+    mockLeaderboardRepo.findOne.mockResolvedValue(null);
+    mockUserRepo.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.awardChallenge({
+        userId: 'ghost-uuid',
         challengeId: 1,
         difficulty: ChallengeDifficulty.EASY,
         type: ChallengeType.SOLO,
-      });
-
-      expect(entry.totalScore).toBe(50);
-      expect(entry.challengeCompletions).toBe(1);
-      expect(user.xp).toBe(20);
-    });
-
-    it('awards MEDIUM + PVP: +150 score (100+50), +70 xp (50+20)', async () => {
-      const entry = mockEntry();
-      const user  = mockUser();
-
-      mockLeaderboardRepo.findOne.mockResolvedValue(entry);
-      mockUserRepo.findOne.mockResolvedValue(user);
-      mockLeaderboardRepo.find.mockResolvedValue([entry]);
-      mockLeaderboardRepo.save.mockResolvedValue(entry);
-      mockUserRepo.save.mockResolvedValue(user);
-
-      await service.awardChallenge({
-        userId: 'user-uuid',
-        challengeId: 2,
-        difficulty: ChallengeDifficulty.MEDIUM,
-        type: ChallengeType.PVP,
-      });
-
-      expect(entry.totalScore).toBe(150);
-      expect(user.xp).toBe(70);
-    });
-
-    it('awards HARD + TEAMS: +230 score (200+30), +110 xp (100+10)', async () => {
-      const entry = mockEntry();
-      const user  = mockUser();
-
-      mockLeaderboardRepo.findOne.mockResolvedValue(entry);
-      mockUserRepo.findOne.mockResolvedValue(user);
-      mockLeaderboardRepo.find.mockResolvedValue([entry]);
-      mockLeaderboardRepo.save.mockResolvedValue(entry);
-      mockUserRepo.save.mockResolvedValue(user);
-
-      await service.awardChallenge({
-        userId: 'user-uuid',
-        challengeId: 3,
-        difficulty: ChallengeDifficulty.HARD,
-        type: ChallengeType.TEAMS,
-      });
-
-      expect(entry.totalScore).toBe(230);
-      expect(user.xp).toBe(110);
-    });
-
-    it('throws NotFoundException if user or entry is missing', async () => {
-      mockLeaderboardRepo.findOne.mockResolvedValue(null);
-      mockUserRepo.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.awardChallenge({
-          userId: 'ghost-uuid',
-          challengeId: 1,
-          difficulty: ChallengeDifficulty.EASY,
-          type: ChallengeType.SOLO,
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
+      }),
+    ).rejects.toThrow(NotFoundException);
   });
+});
 
 
   describe('awardLoginXp', () => {
-    it('adds 10 XP to the user on login', async () => {
-      const user = mockUser({ xp: 40 });
-      mockUserRepo.findOne.mockResolvedValue(user);
-      mockUserRepo.save.mockResolvedValue(user);
+  it('adds 10 XP on first login of the day', async () => {
+    const user  = mockUser({ xp: 40 });
+    const entry = mockEntry({ lastLoginXpAt: null });
 
-      await service.awardLoginXp('user-uuid');
+    mockUserRepo.findOne.mockResolvedValue(user);
+    mockLeaderboardRepo.findOne.mockResolvedValue(entry);
+    mockUserRepo.save.mockResolvedValue(user);
+    mockLeaderboardRepo.save.mockResolvedValue(entry);
 
-      expect(user.xp).toBe(50);
-      expect(mockUserRepo.save).toHaveBeenCalledWith(user);
-    });
+    await service.awardLoginXp('user-uuid');
 
-    it('does nothing silently if user not found', async () => {
-      mockUserRepo.findOne.mockResolvedValue(null);
-
-      await expect(service.awardLoginXp('ghost-uuid')).resolves.toBeUndefined();
-      expect(mockUserRepo.save).not.toHaveBeenCalled();
-    });
+    expect(user.xp).toBe(50);
   });
+
+  it('does NOT award XP if already awarded today', async () => {
+    const user  = mockUser({ xp: 40 });
+    const today = new Date();
+    const entry = mockEntry({ lastLoginXpAt: today });
+
+    mockUserRepo.findOne.mockResolvedValue(user);
+    mockLeaderboardRepo.findOne.mockResolvedValue(entry);
+
+    await service.awardLoginXp('user-uuid');
+
+    expect(user.xp).toBe(40); 
+    expect(mockUserRepo.save).not.toHaveBeenCalled();
+  });
+
+  it('does nothing silently if user not found', async () => {
+    mockUserRepo.findOne.mockResolvedValue(null);
+    mockLeaderboardRepo.findOne.mockResolvedValue(null);
+
+    await expect(service.awardLoginXp('ghost-uuid')).resolves.toBeUndefined();
+    expect(mockUserRepo.save).not.toHaveBeenCalled();
+  });
+});
 
 
   describe('getScoreLeaderboard', () => {
-    it('returns entries ordered by scoreRank ASC', async () => {
-      const entries = [
-        mockEntry({ scoreRank: 1, totalScore: 300 }),
-        mockEntry({ scoreRank: 2, totalScore: 100 }),
-      ];
-      mockLeaderboardRepo.find.mockResolvedValue(entries);
+  it('returns entries ordered by totalScore DESC', async () => {
+    const entries = [
+      mockEntry({ totalScore: 300 }),
+      mockEntry({ totalScore: 100 }),
+    ];
+    mockLeaderboardRepo.find.mockResolvedValue(entries);
 
-      const result = await service.getScoreLeaderboard();
+    const result = await service.getScoreLeaderboard();
 
-      expect(result[0].scoreRank).toBe(1);
-      expect(result[1].scoreRank).toBe(2);
-    });
+    expect(result[0].totalScore).toBe(300);
+    expect(result[1].totalScore).toBe(100);
   });
+});
 
 
   describe('getXpLeaderboard', () => {
@@ -222,30 +236,34 @@ describe('LeaderboardService', () => {
 
 
   describe('getUserStanding', () => {
-    it('returns scoreEntry, xpRank, and xp for a user', async () => {
-      const entry = mockEntry({ scoreRank: 2 });
-      const user  = mockUser({ xp: 80 });
-      const allUsers = [mockUser({ id: 'other-uuid', xp: 200 }), user];
+  it('returns scoreEntry, scoreRank, xpRank, and xp for a user', async () => {
+    const entry      = mockEntry({ totalScore: 100 });
+    const otherEntry = mockEntry({ id: 'other-entry', userId: 'other-uuid', totalScore: 200 });
+    const user       = mockUser({ xp: 80 });
+    const allUsers   = [mockUser({ id: 'other-uuid', xp: 200 }), user];
 
-      mockLeaderboardRepo.findOne.mockResolvedValue(entry);
-      mockUserRepo.findOne.mockResolvedValue(user);
-      mockUserRepo.find.mockResolvedValue(allUsers);
+    mockLeaderboardRepo.findOne.mockResolvedValue(entry);
+    mockUserRepo.findOne.mockResolvedValue(user);
+    mockLeaderboardRepo.find.mockResolvedValue([otherEntry, entry]); 
+    mockUserRepo.find.mockResolvedValue(allUsers);
 
-      const result = await service.getUserStanding('user-uuid');
+    const result = await service.getUserStanding('user-uuid');
 
-      expect(result.scoreEntry.scoreRank).toBe(2);
-      expect(result.xp).toBe(80);
-      expect(result.xpRank).toBe(2); 
-    });
-
-    it('throws NotFoundException if entry or user is missing', async () => {
-      mockLeaderboardRepo.findOne.mockResolvedValue(null);
-      mockUserRepo.findOne.mockResolvedValue(null);
-      mockUserRepo.find.mockResolvedValue([]);
-
-      await expect(service.getUserStanding('ghost')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
+    expect(result.scoreEntry.totalScore).toBe(100);
+    expect(result.scoreRank).toBe(2); 
+    expect(result.xp).toBe(80);
+    expect(result.xpRank).toBe(2);   
   });
+
+  it('throws NotFoundException if entry or user is missing', async () => {
+    mockLeaderboardRepo.findOne.mockResolvedValue(null);
+    mockUserRepo.findOne.mockResolvedValue(null);
+    mockUserRepo.find.mockResolvedValue([]);
+    mockLeaderboardRepo.find.mockResolvedValue([]);
+
+    await expect(service.getUserStanding('ghost')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+});
 });

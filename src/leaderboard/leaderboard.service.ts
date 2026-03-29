@@ -95,57 +95,72 @@ export class LeaderboardService {
       this.userRepo.save(user),
     ]);
 
-    await this.recalculateScoreRanks();
     return this.findEntryByUser(dto.userId);
   }
 
   
   async awardLoginXp(userId: string): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) return; 
+  const [user, entry] = await Promise.all([
+    this.userRepo.findOne({ where: { id: userId } }),
+    this.leaderboardRepo.findOne({ where: { userId } }),
+  ]);
 
-    user.xp += LOGIN_XP;
-    await this.userRepo.save(user);
-  }
+  if (!user || !entry) return;
+
+  const now = new Date();
+  const lastAward = entry.lastLoginXpAt;
+  const alreadyAwardedToday =
+    lastAward &&
+    lastAward.getFullYear() === now.getFullYear() &&
+    lastAward.getMonth()    === now.getMonth() &&
+    lastAward.getDate()     === now.getDate();
+
+  if (alreadyAwardedToday) return;
+
+  user.xp              += LOGIN_XP;
+  entry.lastLoginXpAt   = now;
+
+  await Promise.all([
+    this.userRepo.save(user),
+    this.leaderboardRepo.save(entry),
+  ]);
+}
 
   
-  async getScoreLeaderboard(): Promise<LeaderboardEntry[]> {
-    return this.leaderboardRepo.find({ order: { scoreRank: 'ASC' } });
-  }
+ async getScoreLeaderboard(): Promise<LeaderboardEntry[]> {
+  return this.leaderboardRepo.find({
+    order: { totalScore: 'DESC', challengeCompletions: 'DESC' },
+  });
+}
 
   async getXpLeaderboard(): Promise<User[]> {
     return this.userRepo.find({ order: { xp: 'DESC' } });
   }
 
   async getUserStanding(userId: string): Promise<{
-    scoreEntry: LeaderboardEntry;
-    xpRank: number;
-    xp: number;
-  }> {
-    const [scoreEntry, user, allUsersByXp] = await Promise.all([
-      this.leaderboardRepo.findOne({ where: { userId } }),
-      this.userRepo.findOne({ where: { id: userId } }),
-      this.userRepo.find({ order: { xp: 'DESC' } }),
-    ]);
-
-    if (!scoreEntry || !user) {
-      throw new NotFoundException(`No standing found for user ${userId}`);
-    }
-
-    const xpRank = allUsersByXp.findIndex((u) => u.id === userId) + 1;
-
-    return { scoreEntry, xpRank, xp: user.xp };
-  }
-
-  private async recalculateScoreRanks(): Promise<void> {
-    const entries = await this.leaderboardRepo.find({
+  scoreEntry: LeaderboardEntry;
+  scoreRank: number;
+  xpRank: number;
+  xp: number;
+}> {
+  const [scoreEntry, user, allByScore, allByXp] = await Promise.all([
+    this.leaderboardRepo.findOne({ where: { userId } }),
+    this.userRepo.findOne({ where: { id: userId } }),
+    this.leaderboardRepo.find({
       order: { totalScore: 'DESC', challengeCompletions: 'DESC' },
-    });
+    }),
+    this.userRepo.find({ order: { xp: 'DESC' } }),
+  ]);
 
-    entries.forEach((e, i) => {
-      e.scoreRank = i + 1;
-    });
-
-    await this.leaderboardRepo.save(entries);
+  if (!scoreEntry || !user) {
+    throw new NotFoundException(`No standing found for user ${userId}`);
   }
+
+  const scoreRank = allByScore.findIndex((e) => e.userId === userId) + 1;
+  const xpRank    = allByXp.findIndex((u) => u.id === userId) + 1;
+
+  return { scoreEntry, scoreRank, xpRank, xp: user.xp };
+}
+
+  
 }

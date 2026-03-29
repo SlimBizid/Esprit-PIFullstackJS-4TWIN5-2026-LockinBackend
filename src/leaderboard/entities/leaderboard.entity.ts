@@ -27,8 +27,8 @@ export class LeaderboardEntry {
   @Column({ type: 'int', default: 0 })
   challengeCompletions!: number;
 
-  @Column({ type: 'int', default: 0 })
-  scoreRank!: number;
+  @Column({ type: 'timestamp', nullable: true })
+  lastLoginXpAt!: Date | null;
 
   @CreateDateColumn()
   createdAt!: Date;
