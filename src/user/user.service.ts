@@ -149,8 +149,8 @@ export class UserService {
     return this.userRepository.findOne({ where: { id } });
   }
 
-  async getProfile(id: string): Promise<User | string> {
-    const user = await this.findByUsername(id);
+  async getProfile(username: string): Promise<User | string> {
+    const user = await this.findByUsername(username);
     if (!user) {
       return "User with this username doesn't exist";
     }
