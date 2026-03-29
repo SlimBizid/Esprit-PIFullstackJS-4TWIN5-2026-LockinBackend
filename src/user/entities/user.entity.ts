@@ -28,6 +28,9 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({ type: 'int', default: 0 })
+  xp: number;
+
   @Column({ type: 'enum', enum: UserType, default: UserType.PLAYER })
   type: UserType;
 

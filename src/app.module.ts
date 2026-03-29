@@ -13,6 +13,10 @@ import { ChallengeController } from './challenge/challenge.controller';
 import { ChallengeService } from './challenge/challenge.service';
 import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { LeaderboardEntry } from './leaderboard/entities/leaderboard.entity';
+
+
 
 @Module({
   imports: [
@@ -26,13 +30,14 @@ import { ScheduleModule } from '@nestjs/schedule';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [User, Cosmetic, BlacklistedToken, Challenge],
+      entities: [User, Cosmetic, BlacklistedToken, Challenge, LeaderboardEntry],
       synchronize: true,
     }),
     TypeOrmModule.forFeature([Challenge]),
     UserModule,
     AuthModule,
     CosmeticModule,
+    LeaderboardModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [AppController, ChallengeController],
