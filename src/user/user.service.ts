@@ -148,4 +148,12 @@ export class UserService {
     await this.userRepository.restore(id);
     return this.userRepository.findOne({ where: { id } });
   }
+
+  async getProfile(id: string): Promise<User | string> {
+    const user = await this.findByUsername(id);
+    if (!user) {
+      return "User with this username doesn't exist";
+    }
+    return user;
+  }
 }
