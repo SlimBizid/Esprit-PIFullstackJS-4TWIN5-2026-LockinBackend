@@ -1,15 +1,16 @@
 import {
+  Body,
+  ClassSerializerInterceptor,
   Controller,
+  Delete,
+  ForbiddenException,
   Get,
-  UseGuards,
-  Request,
   NotFoundException,
+  Param,
   Patch,
   Query,
-  Body,
-  Param,
-  ForbiddenException,
-  ClassSerializerInterceptor,
+  Request,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -23,8 +24,8 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  async getProfile(@Request() req:Request  } }) {
+  @Get('me')
+  async me(@Request() req) {
     const user = await this.userService.findByUsername(req.user.username);
 
     if (!user) {
@@ -39,6 +40,11 @@ export class UserController {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  }
+
+  @Get('profile/:username')
+  async getProfile(@Request() req, @Param('username') username: string) {
+    return this.userService.getProfile(username);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -72,5 +78,23 @@ export class UserController {
     }
 
     return this.userService.updateUserRole(id, updated_role);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async deleteUser(@Param('id') id: string, @Request() req) {
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admin can delete users');
+    }
+    return this.userService.softRemove(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('restore/:id')
+  async restoreUser(@Param('id') id: string, @Request() req) {
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admin can restore users');
+    }
+    return this.userService.restore(id);
   }
 }

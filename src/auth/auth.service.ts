@@ -12,6 +12,9 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../user/entities/user.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Response, response } from 'express';
+import { UserDTO } from './dto/user.dto';
+import { TokenBlacklistService } from './token-blacklist/token-blacklist.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +22,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private tokenBlacklistService: TokenBlacklistService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
@@ -32,34 +36,43 @@ export class AuthService {
     return user;
   }
 
-  async login(user: User) {
+  setTokenCookies(res: Response, user: User) {
     const payload = {
+      id: user.id,
       username: user.username,
       email: user.email,
       type: user.type,
       githubHandle: user.githubHandle,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
     };
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: '30m',
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '30m' });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+    res.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: process.env.ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 30,
     });
 
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: '7d',
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
-
-    return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    };
   }
 
-  async signin(username: string, password: string) {
-    const user = await this.validateUser(username, password);
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-
-    return this.login(user);
+  getUserDTO(user: User): UserDTO {
+    return {
+      id: user.id,
+      username: user.username,
+      githubHandle: user.githubHandle,
+      email: user.email,
+      type: user.type,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
   async SignUp(
     username: string,
@@ -114,5 +127,34 @@ export class AuthService {
     } catch (error) {
       throw new BadRequestException('Invalid or expired reset token');
     }
+  }
+  //terrible type-checking
+  async refresh(
+    res: Response,
+    user: User,
+    oldRefreshToken: string,
+  ): Promise<UserDTO> {
+    if (oldRefreshToken) {
+      const payload = this.jwtService.decode(oldRefreshToken);
+      const expiresIn = payload.exp - Math.floor(Date.now() / 1000);
+      if (expiresIn > 0) {
+        await this.tokenBlacklistService.blacklist(oldRefreshToken, expiresIn);
+      }
+    }
+    this.setTokenCookies(res, user);
+    return this.getUserDTO(user);
+  }
+
+  async logout(res: Response, refreshToken: string): Promise<void> {
+    if (refreshToken) {
+      const payload = this.jwtService.decode(refreshToken);
+      const expiresIn = payload.exp - Math.floor(Date.now() / 1000);
+      if (expiresIn > 0) {
+        await this.tokenBlacklistService.blacklist(refreshToken, expiresIn);
+      }
+    }
+
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
   }
 }

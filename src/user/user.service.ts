@@ -1,9 +1,10 @@
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import {
+  BadRequestException,
   HttpException,
-  Injectable,
   HttpStatus,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,6 +21,12 @@ export class UserService {
   async findByUsername(username: string): Promise<User | null> {
     return await this.userRepository.findOne({
       where: { username },
+    });
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: { id },
     });
   }
 
@@ -121,5 +128,32 @@ export class UserService {
 
     user.type = updated_role;
     return this.userRepository.save(user);
+  }
+
+  async softRemove(id: string) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException(`Couldn't find user ${id}`);
+    return this.userRepository.softRemove(user);
+  }
+
+  async restore(id: string) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+    if (!user) throw new NotFoundException(`Couldn't find user ${id}`);
+    if (!user.deletedAt) {
+      throw new BadRequestException('User is not deleted');
+    }
+    await this.userRepository.restore(id);
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async getProfile(username: string): Promise<User | string> {
+    const user = await this.findByUsername(username);
+    if (!user) {
+      return "User with this username doesn't exist";
+    }
+    return user;
   }
 }
