@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +10,8 @@ import { Team } from './entities/team.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { type Request } from 'express';
 
 @Injectable()
 export class TeamService {
@@ -27,7 +30,7 @@ export class TeamService {
 
     const team = this.teamRepository.create({
       name: dto.name,
-      leaderId: leader.id,
+      leaderId: leader,
       users: [leader],
       pendingInvitations: [],
       status: 'PENDING',
@@ -118,5 +121,14 @@ export class TeamService {
     if (team.users.length < 3) team.status = 'PENDING';
 
     return this.teamRepository.save(team);
+  }
+
+  async findMyTeams(userId: string): Promise<Team[]> {
+    return this.teamRepository
+      .createQueryBuilder('team')
+      .leftJoinAndSelect('team.users', 'user')
+      .where('user.id = :userId', { userId })
+      .orWhere('team.leaderId = :userId', { userId })
+      .getMany();
   }
 }

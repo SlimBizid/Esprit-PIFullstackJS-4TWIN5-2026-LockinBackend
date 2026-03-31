@@ -43,6 +43,6 @@ export class User {
   @DeleteDateColumn()
   deletedAt: Date;
 
-  @ManyToOne(() => Team, (team) => team.users, { nullable: false })
+  @ManyToOne(() => Team, (team) => team.users, { nullable: true })
   team: Team;
 }

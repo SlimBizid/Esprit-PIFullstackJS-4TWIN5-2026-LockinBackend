@@ -6,6 +6,8 @@ import {
   Index,
   OneToMany,
   DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
@@ -27,8 +29,9 @@ export class Team {
   @OneToMany(() => User, (user) => user.team)
   users: User[];
 
-  @Column()
-  leaderId: string;
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'leaderId' })
+  leaderId: User;
 
   @Column({ type: 'json', default: [] })
   pendingInvitations: string[];

@@ -7,19 +7,30 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { TeamService } from './team.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('teams')
 export class TeamController {
   constructor(private readonly teamService: TeamService) {}
 
   // Créer une team
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateTeamDto, @Body('leaderId') leaderId: string) {
-    return this.teamService.createTeam(dto, leaderId);
+  create(@Body() dto: CreateTeamDto, @Request() req) {
+    if (req.user) {
+      return this.teamService.createTeam(dto, req.user.id);
+    }
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get('my')
+  getMyTeams(@Request() req: any) {
+    return this.teamService.findMyTeams(req.user.id);
   }
 
   // Lister toutes les teams
