@@ -13,6 +13,8 @@ import { ChallengeController } from './challenge/challenge.controller';
 import { ChallengeService } from './challenge/challenge.service';
 import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CodeExecutionController } from './code-execution/code-execution.controller';
+import { CodeExecutionService } from './code-execution/code-execution.service';
 
 @Module({
   imports: [
@@ -35,7 +37,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CosmeticModule,
     ScheduleModule.forRoot(),
   ],
-  controllers: [AppController, ChallengeController],
-  providers: [AppService, ChallengeService],
+  controllers: [AppController, ChallengeController, CodeExecutionController],
+  providers: [AppService, ChallengeService, CodeExecutionService],
 })
 export class AppModule {}
