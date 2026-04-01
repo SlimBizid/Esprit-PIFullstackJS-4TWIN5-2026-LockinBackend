@@ -19,6 +19,9 @@ import { Match } from './match/entities/match.entity';
 import { MatchSubmission } from './match/entities/match-submission.entity';
 import { MatchController } from './match/match.controller';
 import { MatchService } from './match/match.service';
+import { ChallengeSubmission } from './submission/entities/challenge-submission.entity';
+import { SubmissionController } from './submission/submission.controller';
+import { SubmissionService } from './submission/submission.service';
 
 @Module({
   imports: [
@@ -39,10 +42,16 @@ import { MatchService } from './match/match.service';
         Challenge,
         Match,
         MatchSubmission,
+        ChallengeSubmission,
       ],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([Challenge, Match, MatchSubmission]),
+    TypeOrmModule.forFeature([
+      Challenge,
+      Match,
+      MatchSubmission,
+      ChallengeSubmission,
+    ]),
     UserModule,
     AuthModule,
     CosmeticModule,
@@ -53,7 +62,14 @@ import { MatchService } from './match/match.service';
     ChallengeController,
     CodeExecutionController,
     MatchController,
+    SubmissionController,
   ],
-  providers: [AppService, ChallengeService, CodeExecutionService, MatchService],
+  providers: [
+    AppService,
+    ChallengeService,
+    CodeExecutionService,
+    MatchService,
+    SubmissionService,
+  ],
 })
 export class AppModule {}
