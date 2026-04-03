@@ -55,7 +55,7 @@ export class UserController {
     @Query('type') type?: UserType,
     @Query('search') search?: string,
   ) {
-    const requesterRole = req.user.type;
+    const requesterRole: UserType = req.user.type;
     return this.userService.findAll(
       Number(page),
       Number(limit),
