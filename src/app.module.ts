@@ -15,6 +15,15 @@ import { ChallengeController } from './challenge/challenge.controller';
 import { ChallengeService } from './challenge/challenge.service';
 import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { CodeExecutionController } from './code-execution/code-execution.controller';
+import { CodeExecutionService } from './code-execution/code-execution.service';
+import { Match } from './match/entities/match.entity';
+import { MatchSubmission } from './match/entities/match-submission.entity';
+import { MatchController } from './match/match.controller';
+import { MatchService } from './match/match.service';
+import { ChallengeSubmission } from './submission/entities/challenge-submission.entity';
+import { SubmissionController } from './submission/submission.controller';
+import { SubmissionService } from './submission/submission.service';
 
 @Module({
   imports: [
@@ -28,18 +37,44 @@ import { ScheduleModule } from '@nestjs/schedule';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [User, Cosmetic, BlacklistedToken, Challenge, Team],
+      entities: [
+        User,
+        Cosmetic,
+        BlacklistedToken,
+        Challenge,
+        Team,
+        Match,
+        MatchSubmission,
+        ChallengeSubmission,
+      ],
       ssl: process.env.ENV == 'prod',
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([Challenge]),
+    TypeOrmModule.forFeature([
+      Challenge,
+      Match,
+      MatchSubmission,
+      ChallengeSubmission,
+    ]),
     UserModule,
     AuthModule,
     TeamModule,
     CosmeticModule,
     ScheduleModule.forRoot(),
   ],
-  controllers: [AppController, ChallengeController],
-  providers: [AppService, ChallengeService],
+  controllers: [
+    AppController,
+    ChallengeController,
+    CodeExecutionController,
+    MatchController,
+    SubmissionController,
+  ],
+  providers: [
+    AppService,
+    ChallengeService,
+    CodeExecutionService,
+    MatchService,
+    SubmissionService,
+  ],
 })
 export class AppModule {}
