@@ -29,6 +29,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       entities: [User, Cosmetic, BlacklistedToken, Challenge, Team],
+      ssl: process.env.ENV == 'prod',
       synchronize: true,
     }),
     TypeOrmModule.forFeature([Challenge]),
