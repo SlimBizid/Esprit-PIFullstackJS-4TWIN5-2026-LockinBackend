@@ -17,6 +17,7 @@ import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity'
 import { ScheduleModule } from '@nestjs/schedule';
 import { CodeExecutionController } from './code-execution/code-execution.controller';
 import { CodeExecutionService } from './code-execution/code-execution.service';
+import { MatchMessage } from './match/entities/match-message.entity';
 import { Match } from './match/entities/match.entity';
 import { MatchSubmission } from './match/entities/match-submission.entity';
 import { MatchController } from './match/match.controller';
@@ -44,6 +45,7 @@ import { SubmissionService } from './submission/submission.service';
         Challenge,
         Team,
         Match,
+        MatchMessage,
         MatchSubmission,
         ChallengeSubmission,
       ],
@@ -53,6 +55,7 @@ import { SubmissionService } from './submission/submission.service';
     TypeOrmModule.forFeature([
       Challenge,
       Match,
+      MatchMessage,
       MatchSubmission,
       ChallengeSubmission,
     ]),

@@ -13,6 +13,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { User } from 'src/user/entities/user.entity';
 
 import { CreateMatchDto } from './dto/create-match.dto';
+import { CreateMatchMessageDto } from './dto/create-match-message.dto';
 import { ListPublicMatchesDto } from './dto/list-public-matches.dto';
 import { SubmitMatchDto } from './dto/submit-match.dto';
 import { MatchService } from './match.service';
@@ -60,6 +61,23 @@ export class MatchController {
     @Request() req: { user: User },
   ) {
     return this.matchService.getMatch(id, req.user);
+  }
+
+  @Get(':id/messages')
+  listMessages(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: User },
+  ) {
+    return this.matchService.listMessages(id, req.user);
+  }
+
+  @Post(':id/messages')
+  createMessage(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateMatchMessageDto,
+    @Request() req: { user: User },
+  ) {
+    return this.matchService.createMessage(id, dto, req.user);
   }
 
   @Post(':id/surrender')

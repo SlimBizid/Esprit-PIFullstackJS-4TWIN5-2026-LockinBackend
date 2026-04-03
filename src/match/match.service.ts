@@ -13,8 +13,10 @@ import { User } from 'src/user/entities/user.entity';
 import { Brackets, Repository } from 'typeorm';
 
 import { CreateMatchDto } from './dto/create-match.dto';
+import { CreateMatchMessageDto } from './dto/create-match-message.dto';
 import { ListPublicMatchesDto } from './dto/list-public-matches.dto';
 import { SubmitMatchDto } from './dto/submit-match.dto';
+import { MatchMessage } from './entities/match-message.entity';
 import { MatchSubmission } from './entities/match-submission.entity';
 import { Match } from './entities/match.entity';
 import { MatchStatus } from './enums/match-status.enum';
@@ -26,6 +28,8 @@ export class MatchService {
   constructor(
     @InjectRepository(Match)
     private readonly matchRepository: Repository<Match>,
+    @InjectRepository(MatchMessage)
+    private readonly messageRepository: Repository<MatchMessage>,
     @InjectRepository(MatchSubmission)
     private readonly submissionRepository: Repository<MatchSubmission>,
     private readonly challengeService: ChallengeService,
@@ -172,6 +176,44 @@ export class MatchService {
     });
 
     return this.serializeMatch(match, submissions);
+  }
+
+  async listMessages(matchId: string, user: User) {
+    const match = await this.findMatchById(matchId);
+    this.ensureParticipant(match, user.id);
+
+    const messages = await this.messageRepository.find({
+      where: { matchId },
+      relations: {
+        user: true,
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+      take: 200,
+    });
+
+    return messages.map((message) => this.serializeMessage(message));
+  }
+
+  async createMessage(matchId: string, dto: CreateMatchMessageDto, user: User) {
+    const match = await this.findMatchById(matchId);
+    this.ensureParticipant(match, user.id);
+
+    if (!match.playerTwoId || match.status === MatchStatus.WAITING) {
+      throw new ConflictException('Chat unlocks when both players join.');
+    }
+
+    const message = this.messageRepository.create({
+      matchId: match.id,
+      userId: user.id,
+      content: dto.content.trim(),
+    });
+
+    const savedMessage = await this.messageRepository.save(message);
+    savedMessage.user = user;
+
+    return this.serializeMessage(savedMessage);
   }
 
   async submitToMatch(matchId: string, dto: SubmitMatchDto, user: User) {
@@ -348,6 +390,17 @@ export class MatchService {
         totalCount: submission.totalCount,
         createdAt: submission.createdAt,
       })),
+    };
+  }
+
+  private serializeMessage(message: MatchMessage) {
+    return {
+      id: message.id,
+      matchId: message.matchId,
+      userId: message.userId,
+      username: message.user?.username ?? null,
+      content: message.content,
+      createdAt: message.createdAt,
     };
   }
 }
