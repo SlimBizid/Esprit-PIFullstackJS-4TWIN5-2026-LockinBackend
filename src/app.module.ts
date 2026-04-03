@@ -47,6 +47,7 @@ import { SubmissionService } from './submission/submission.service';
         MatchSubmission,
         ChallengeSubmission,
       ],
+      ssl: process.env.ENV == 'prod',
       synchronize: true,
     }),
     TypeOrmModule.forFeature([
