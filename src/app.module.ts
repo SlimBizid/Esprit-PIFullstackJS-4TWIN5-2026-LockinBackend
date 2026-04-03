@@ -7,6 +7,8 @@ import { User } from './user/entities/user.entity';
 import { Challenge } from './challenge/entities/challenge.entity';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { TeamModule } from './team/team.module';
+import { Team } from './team/entities/team.entity';
 import { CosmeticModule } from './cosmetic/cosmetic.module';
 import { Cosmetic } from './cosmetic/entities/cosmetic.entity';
 import { ChallengeController } from './challenge/challenge.controller';
@@ -40,6 +42,7 @@ import { SubmissionService } from './submission/submission.service';
         Cosmetic,
         BlacklistedToken,
         Challenge,
+        Team,
         Match,
         MatchSubmission,
         ChallengeSubmission,
@@ -54,6 +57,7 @@ import { SubmissionService } from './submission/submission.service';
     ]),
     UserModule,
     AuthModule,
+    TeamModule,
     CosmeticModule,
     ScheduleModule.forRoot(),
   ],

@@ -43,7 +43,7 @@ export class UserService {
     return await bcrypt.compare(plaintextPassword, user.password);
   }
 
-  async findUsernameExists(username: string): Promise<Boolean> {
+  async findUsernameExists(username: string): Promise<boolean> {
     const user = await this.userRepository.findOneBy({ username });
     if (user) {
       return true;
@@ -51,7 +51,7 @@ export class UserService {
       return false;
     }
   }
-  async findEmailExists(email: string): Promise<Boolean> {
+  async findEmailExists(email: string): Promise<boolean> {
     const user = await this.userRepository.findOneBy({ email });
     if (user) {
       return true;
