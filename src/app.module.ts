@@ -18,12 +18,20 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CodeExecutionController } from './code-execution/code-execution.controller';
 import { CodeExecutionService } from './code-execution/code-execution.service';
 import { Match } from './match/entities/match.entity';
+import { MatchMessage } from './match/entities/match-message.entity';
 import { MatchSubmission } from './match/entities/match-submission.entity';
 import { MatchController } from './match/match.controller';
 import { MatchService } from './match/match.service';
 import { ChallengeSubmission } from './submission/entities/challenge-submission.entity';
 import { SubmissionController } from './submission/submission.controller';
 import { SubmissionService } from './submission/submission.service';
+import { ReviewController } from './review/review.controller';
+import { ReviewService } from './review/review.service';
+import { ChallengeReview } from './review/entities/challenge-review.entity';
+import { ChallengeReviewComment } from './review/entities/challenge-review-comment.entity';
+import { ChallengeReviewUpvote } from './review/entities/challenge-review-upvote.entity';
+import { ChallengeReviewReport } from './review/entities/challenge-review-report.entity';
+import { ChallengeReviewCommentReport } from './review/entities/challenge-review-comment-report.entity';
 
 @Module({
   imports: [
@@ -44,8 +52,14 @@ import { SubmissionService } from './submission/submission.service';
         Challenge,
         Team,
         Match,
+        MatchMessage,
         MatchSubmission,
         ChallengeSubmission,
+        ChallengeReview,
+        ChallengeReviewComment,
+        ChallengeReviewUpvote,
+        ChallengeReviewReport,
+        ChallengeReviewCommentReport,
       ],
       ssl: process.env.ENV == 'prod',
       synchronize: true,
@@ -53,8 +67,14 @@ import { SubmissionService } from './submission/submission.service';
     TypeOrmModule.forFeature([
       Challenge,
       Match,
+      MatchMessage,
       MatchSubmission,
       ChallengeSubmission,
+      ChallengeReview,
+      ChallengeReviewComment,
+      ChallengeReviewUpvote,
+      ChallengeReviewReport,
+      ChallengeReviewCommentReport,
     ]),
     UserModule,
     AuthModule,
@@ -68,6 +88,7 @@ import { SubmissionService } from './submission/submission.service';
     CodeExecutionController,
     MatchController,
     SubmissionController,
+    ReviewController,
   ],
   providers: [
     AppService,
@@ -75,6 +96,7 @@ import { SubmissionService } from './submission/submission.service';
     CodeExecutionService,
     MatchService,
     SubmissionService,
+    ReviewService,
   ],
 })
 export class AppModule {}
