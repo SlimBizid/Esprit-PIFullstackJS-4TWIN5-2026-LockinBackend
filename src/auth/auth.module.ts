@@ -13,6 +13,8 @@ import { EmailModule } from '../email/email.module';
 import { BlacklistedToken } from './token-blacklist/token-blacklist.entity';
 import { TokenBlacklistService } from './token-blacklist/token-blacklist.service';
 import { RefreshTokenStrategy } from './refresh-token.strategy';
+import { LeaderboardModule } from '../leaderboard/leaderboard.module';
+
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { RefreshTokenStrategy } from './refresh-token.strategy';
     UserModule,
     PassportModule,
     EmailModule,
+    LeaderboardModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: () => ({

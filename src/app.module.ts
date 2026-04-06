@@ -15,6 +15,8 @@ import { ChallengeController } from './challenge/challenge.controller';
 import { ChallengeService } from './challenge/challenge.service';
 import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { LeaderboardEntry } from './leaderboard/entities/leaderboard.entity';
 import { CodeExecutionController } from './code-execution/code-execution.controller';
 import { CodeExecutionService } from './code-execution/code-execution.service';
 import { MatchMessage } from './match/entities/match-message.entity';
@@ -61,6 +63,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
         ChallengeReviewUpvote,
         ChallengeReviewReport,
         ChallengeReviewCommentReport,
+        LeaderboardEntry,
       ],
       ssl: process.env.ENV == 'prod',
       synchronize: true,
@@ -81,6 +84,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
     AuthModule,
     TeamModule,
     CosmeticModule,
+    LeaderboardModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [

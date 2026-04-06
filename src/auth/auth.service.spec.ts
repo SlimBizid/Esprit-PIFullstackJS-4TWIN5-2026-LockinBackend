@@ -6,8 +6,11 @@ import { User } from '../user/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
 import { Repository } from 'typeorm';
+import { LeaderboardService } from '../leaderboard/leaderboard.service';
+import { TokenBlacklistService } from './token-blacklist/token-blacklist.service';
 
 describe('AuthService', () => {
+  let module: TestingModule;
   let service: AuthService;
   let jwtService: jest.Mocked<JwtService>;
   let emailService: jest.Mocked<EmailService>;
@@ -15,7 +18,7 @@ describe('AuthService', () => {
   let userRepository: jest.Mocked<Repository<User>>;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+      module = await Test.createTestingModule({
       providers: [
         AuthService,
         {
@@ -33,6 +36,7 @@ describe('AuthService', () => {
             verify: jest.fn(),
           },
         },
+        
         {
           provide: EmailService,
           useValue: {
@@ -46,6 +50,18 @@ describe('AuthService', () => {
             save: jest.fn(),
           },
         },
+        {
+  provide: TokenBlacklistService,
+  useValue: {
+    blacklist: jest.fn(),
+  },
+},
+{
+  provide: LeaderboardService,
+  useValue: {
+    createEntry: jest.fn(),
+  },
+},
       ],
     }).compile();
 
@@ -145,5 +161,34 @@ describe('AuthService', () => {
       expect(result.message).toBe('Password reset successfully');
       expect(userRepository.save).toHaveBeenCalled();
     });
+  }
+);
+describe('SignUp', () => {
+  it('should create user and leaderboard entry', async () => {
+    const mockUser = { id: 'user-uuid', email: 'test@test.com' } as User;
+
+    userService.CreateUser.mockResolvedValue(undefined);
+    userService.findByEmail.mockResolvedValue(mockUser);
+
+    const leaderboardService = module.get(LeaderboardService);
+
+    await service.SignUp('testuser', 'test@test.com', 'password123');
+
+    expect(userService.CreateUser).toHaveBeenCalled();
+    expect(leaderboardService.createEntry).toHaveBeenCalledWith({
+      userId: mockUser.id,
+    });
   });
+
+  it('should not call createEntry if user not found after signup', async () => {
+    userService.CreateUser.mockResolvedValue(undefined);
+    userService.findByEmail.mockResolvedValue(null);
+
+    const leaderboardService = module.get(LeaderboardService);
+
+    await service.SignUp('testuser', 'test@test.com', 'password123');
+
+    expect(leaderboardService.createEntry).not.toHaveBeenCalled();
+  });
+});
 });
