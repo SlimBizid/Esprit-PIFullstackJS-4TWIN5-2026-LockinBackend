@@ -3,6 +3,7 @@ import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
 import { ChallengeTopic } from '../enums/challenge-topic.enums';
 import { ChallengeCaseDto } from './challenge-case.dto';
+import { ChallengeQuizQuestionDto } from './challenge-quiz-question.dto';
 
 export class ChallengeResponseDto {
   @Expose()
@@ -31,6 +32,9 @@ export class ChallengeResponseDto {
 
   @Expose()
   cases: ChallengeCaseDto[];
+
+  @Expose()
+  quizQuestions: ChallengeQuizQuestionDto[];
 
   @Expose()
   type: ChallengeType;

@@ -1,11 +1,15 @@
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { IsObject, IsOptional, IsString } from 'class-validator';
 
 export class SubmitMatchDto {
+  @IsOptional()
   @IsString()
-  @IsIn(['javascript', 'typescript', 'python', 'java', 'cpp'])
-  language: 'javascript' | 'typescript' | 'python' | 'java' | 'cpp';
+  language?: 'javascript' | 'typescript' | 'python' | 'java' | 'cpp' | 'quiz';
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  sourceCode: string;
+  sourceCode?: string;
+
+  @IsOptional()
+  @IsObject()
+  answers?: Record<string, string[]>;
 }

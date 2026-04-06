@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChallengeService } from 'src/challenge/challenge.service';
 import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
+import { evaluateQuizAnswers } from 'src/challenge/utils/evaluate-quiz.util';
 import { CodeExecutionService } from 'src/code-execution/code-execution.service';
 import { MatchVerdict } from 'src/match/enums/match-verdict.enum';
 import { User } from 'src/user/entities/user.entity';
@@ -23,26 +24,28 @@ export class SubmissionService {
   async createSubmission(dto: CreateSubmissionDto, user: User) {
     const challenge = await this.challengeService.findOne(dto.challengeId);
 
-    if (challenge.type !== ChallengeType.SOLO) {
+    if (![ChallengeType.SOLO, ChallengeType.QUIZ].includes(challenge.type)) {
       throw new BadRequestException(
-        'Only solo challenges can be submitted through this endpoint.',
+        'Only solo challenge modes can be submitted through this endpoint.',
       );
     }
 
-    const execution = await this.codeExecutionService.runCode(dto);
-    const passedCount = execution.results.filter((result) => result.passed).length;
-    const totalCount = execution.results.length;
-    const verdict = this.getVerdict(execution.results, passedCount, totalCount);
+    const isQuizChallenge = challenge.type === ChallengeType.QUIZ;
+    const evaluation = isQuizChallenge
+      ? this.evaluateQuizSubmission(challenge.quizQuestions, dto.answers)
+      : await this.evaluateCodeSubmission(dto);
 
     const submission = this.submissionRepository.create({
       challengeId: challenge.id,
       userId: user.id,
-      language: dto.language,
-      sourceCode: dto.sourceCode,
-      verdict,
-      passedCount,
-      totalCount,
-      results: execution.results.map((result) => ({
+      language: isQuizChallenge ? 'quiz' : (dto.language as string),
+      sourceCode: isQuizChallenge
+        ? JSON.stringify(dto.answers ?? {})
+        : (dto.sourceCode as string),
+      verdict: evaluation.verdict,
+      passedCount: evaluation.passedCount,
+      totalCount: evaluation.totalCount,
+      results: evaluation.results.map((result) => ({
         passed: result.passed,
         actual: result.actual,
         expected: result.expected,
@@ -85,6 +88,57 @@ export class SubmissionService {
         limit,
       },
     };
+  }
+
+  private async evaluateCodeSubmission(dto: CreateSubmissionDto) {
+    if (!dto.language || !dto.sourceCode?.trim()) {
+      throw new BadRequestException(
+        'Code challenges require both a language and source code.',
+      );
+    }
+
+    const execution = await this.codeExecutionService.runCode({
+      challengeId: dto.challengeId,
+      language: dto.language as
+        | 'javascript'
+        | 'typescript'
+        | 'python'
+        | 'java'
+        | 'cpp',
+      sourceCode: dto.sourceCode,
+    });
+    const passedCount = execution.results.filter((result) => result.passed).length;
+    const totalCount = execution.results.length;
+
+    return {
+      results: execution.results,
+      passedCount,
+      totalCount,
+      verdict: this.getVerdict(execution.results, passedCount, totalCount),
+    };
+  }
+
+  private evaluateQuizSubmission(
+    questions: Array<{
+      id: string;
+      prompt: string;
+      options: Array<{ id: string; text: string }>;
+      correctOptionIds: string[];
+      explanation?: string;
+    }>,
+    answers?: Record<string, string[]>,
+  ) {
+    if (questions.length === 0) {
+      throw new BadRequestException(
+        'This quiz challenge does not have any questions configured.',
+      );
+    }
+
+    if (!answers || Object.keys(answers).length === 0) {
+      throw new BadRequestException('Select at least one answer before submitting.');
+    }
+
+    return evaluateQuizAnswers(questions, answers);
   }
 
   private getVerdict(
