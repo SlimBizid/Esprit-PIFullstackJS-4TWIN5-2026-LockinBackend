@@ -2,6 +2,7 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Max,
@@ -24,6 +25,14 @@ export class CreateChallengeDto {
   @IsString()
   @IsNotEmpty({ message: 'Challenge content cannot be empty.' })
   content: string;
+
+  @IsString()
+  @IsOptional()
+  starterCode?: string = '';
+
+  @IsObject()
+  @IsOptional()
+  starterCodes?: Record<string, string> = {};
 
   @IsArray()
   @IsString({ each: true })

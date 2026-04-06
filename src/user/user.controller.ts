@@ -23,8 +23,8 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  async getProfile(@Request() req) {
+  @Get('me')
+  async me(@Request() req) {
     const user = await this.userService.findByUsername(req.user.username);
 
     if (!user) {
@@ -41,6 +41,11 @@ export class UserController {
     };
   }
 
+  @Get('profile/:username')
+  async getProfile(@Request() req, @Param('username') username: string) {
+    return this.userService.getProfile(username);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get()
   async findAll(
@@ -50,7 +55,7 @@ export class UserController {
     @Query('type') type?: UserType,
     @Query('search') search?: string,
   ) {
-    const requesterRole = req.user.type;
+    const requesterRole: UserType = req.user.type;
     return this.userService.findAll(
       Number(page),
       Number(limit),

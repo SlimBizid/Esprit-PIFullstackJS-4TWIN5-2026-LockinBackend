@@ -43,7 +43,7 @@ export class UserService {
     return await bcrypt.compare(plaintextPassword, user.password);
   }
 
-  async findUsernameExists(username: string): Promise<Boolean> {
+  async findUsernameExists(username: string): Promise<boolean> {
     const user = await this.userRepository.findOneBy({ username });
     if (user) {
       return true;
@@ -51,7 +51,7 @@ export class UserService {
       return false;
     }
   }
-  async findEmailExists(email: string): Promise<Boolean> {
+  async findEmailExists(email: string): Promise<boolean> {
     const user = await this.userRepository.findOneBy({ email });
     if (user) {
       return true;
@@ -147,5 +147,13 @@ export class UserService {
     }
     await this.userRepository.restore(id);
     return this.userRepository.findOne({ where: { id } });
+  }
+
+  async getProfile(username: string): Promise<User | string> {
+    const user = await this.findByUsername(username);
+    if (!user) {
+      return "User with this username doesn't exist";
+    }
+    return user;
   }
 }

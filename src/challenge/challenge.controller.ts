@@ -42,6 +42,15 @@ export class ChallengeController {
     return result;
   }
 
+  @Get('daily/current')
+  async getDailyChallenge(
+    @Request() req: Request & { user: { type: UserType } },
+  ) {
+    const userRole = req.user?.type || UserType.PLAYER;
+
+    return this.challengeService.findDailyChallenge(userRole);
+  }
+
   @Get(':id')
   async getChallengeById(
     @Param('id', ParseIntPipe) id: number,
