@@ -1,8 +1,8 @@
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateMatchMessageDto {
   @IsString()
-  @MinLength(1)
+  @IsNotEmpty()
   @MaxLength(1000)
   content: string;
 }

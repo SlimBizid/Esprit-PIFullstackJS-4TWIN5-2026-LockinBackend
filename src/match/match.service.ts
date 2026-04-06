@@ -190,6 +190,7 @@ export class MatchService {
       order: {
         createdAt: 'ASC',
       },
+      take: 200,
     });
 
     return messages.map((message) => this.serializeMessage(message));
@@ -199,10 +200,8 @@ export class MatchService {
     const match = await this.findMatchById(matchId);
     this.ensureParticipant(match, user.id);
 
-    if (match.status === MatchStatus.WAITING || !match.playerTwoId) {
-      throw new ConflictException(
-        'Chat unlocks once both players have joined the match.',
-      );
+    if (!match.playerTwoId || match.status === MatchStatus.WAITING) {
+      throw new ConflictException('Chat unlocks when both players join.');
     }
 
     const message = this.messageRepository.create({
@@ -212,18 +211,9 @@ export class MatchService {
     });
 
     const savedMessage = await this.messageRepository.save(message);
-    const populatedMessage = await this.messageRepository.findOne({
-      where: { id: savedMessage.id },
-      relations: {
-        user: true,
-      },
-    });
+    savedMessage.user = user;
 
-    if (!populatedMessage) {
-      throw new NotFoundException('Message could not be loaded after save.');
-    }
-
-    return this.serializeMessage(populatedMessage);
+    return this.serializeMessage(savedMessage);
   }
 
   async submitToMatch(matchId: string, dto: SubmitMatchDto, user: User) {
