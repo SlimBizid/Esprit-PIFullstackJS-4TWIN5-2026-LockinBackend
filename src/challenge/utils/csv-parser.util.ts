@@ -56,6 +56,7 @@ function mapCsvRowToChallenge(row: CsvRow): CreateChallengeDto {
     examples: parseJsonArray(row.examples),
     constraints: parseJsonArray(row.constraints),
     conditions: parseJsonArray(row.conditions),
+    quizQuestions: parseCases(row.cases),
     cases: parseCases(row.cases),
     type: validateEnum(
       row.type?.trim(),

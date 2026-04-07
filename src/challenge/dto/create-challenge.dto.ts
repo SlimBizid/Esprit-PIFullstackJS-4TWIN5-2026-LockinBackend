@@ -16,6 +16,7 @@ import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
 import { ChallengeTopic } from '../enums/challenge-topic.enums';
 import { Type } from 'class-transformer';
 import { ChallengeCaseDto } from './challenge-case.dto';
+import { ChallengeQuizQuestionDto } from './challenge-quiz-question.dto';
 
 export class CreateChallengeDto {
   @IsString()
@@ -54,6 +55,12 @@ export class CreateChallengeDto {
   @Type(() => ChallengeCaseDto)
   @IsOptional()
   cases: ChallengeCaseDto[] = [];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChallengeQuizQuestionDto)
+  @IsOptional()
+  quizQuestions: ChallengeQuizQuestionDto[] = [];
 
   @IsEnum(ChallengeType, {
     message: 'Type must be one of: ' + Object.values(ChallengeType).join(', '),

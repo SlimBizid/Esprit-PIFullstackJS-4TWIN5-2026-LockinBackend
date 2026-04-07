@@ -24,6 +24,11 @@ import { MatchMessage } from './match/entities/match-message.entity';
 import { MatchSubmission } from './match/entities/match-submission.entity';
 import { MatchController } from './match/match.controller';
 import { MatchService } from './match/match.service';
+import { ImposterController } from './imposter/imposter.controller';
+import { ImposterService } from './imposter/imposter.service';
+import { ImposterMatch } from './imposter/entities/imposter-match.entity';
+import { ImposterParticipant } from './imposter/entities/imposter-participant.entity';
+import { ImposterSubmission } from './imposter/entities/imposter-submission.entity';
 import { ChallengeSubmission } from './submission/entities/challenge-submission.entity';
 import { SubmissionController } from './submission/submission.controller';
 import { SubmissionService } from './submission/submission.service';
@@ -56,6 +61,9 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
         Match,
         MatchMessage,
         MatchSubmission,
+        ImposterMatch,
+        ImposterParticipant,
+        ImposterSubmission,
         ChallengeSubmission,
         ChallengeReview,
         ChallengeReviewComment,
@@ -72,6 +80,9 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
       Match,
       MatchMessage,
       MatchSubmission,
+      ImposterMatch,
+      ImposterParticipant,
+      ImposterSubmission,
       ChallengeSubmission,
       ChallengeReview,
       ChallengeReviewComment,
@@ -91,6 +102,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
     ChallengeController,
     CodeExecutionController,
     MatchController,
+    ImposterController,
     SubmissionController,
     ReviewController,
   ],
@@ -99,6 +111,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
     ChallengeService,
     CodeExecutionService,
     MatchService,
+    ImposterService,
     SubmissionService,
     ReviewService,
   ],

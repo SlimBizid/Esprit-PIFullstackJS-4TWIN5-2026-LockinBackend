@@ -20,8 +20,11 @@ const BASE_SCORE: Record<ChallengeDifficulty, number> = {
 
 const TYPE_SCORE_BONUS: Record<ChallengeType, number> = {
   [ChallengeType.SOLO]: 0,
+  [ChallengeType.QUIZ]: 0,
   [ChallengeType.PVP]: 50,
+  [ChallengeType.QUIZ_PVP]: 50,
   [ChallengeType.TEAMS]: 30,
+  [ChallengeType.IMPOSTER]: 40,
 };
 
 const BASE_XP: Record<ChallengeDifficulty, number> = {
@@ -32,8 +35,11 @@ const BASE_XP: Record<ChallengeDifficulty, number> = {
 
 const TYPE_XP_BONUS: Record<ChallengeType, number> = {
   [ChallengeType.SOLO]: 0,
+  [ChallengeType.QUIZ]: 0,
   [ChallengeType.PVP]: 20,
+  [ChallengeType.QUIZ_PVP]: 20,
   [ChallengeType.TEAMS]: 10,
+  [ChallengeType.IMPOSTER]: 15,
 };
 
 const LOGIN_XP = 10;

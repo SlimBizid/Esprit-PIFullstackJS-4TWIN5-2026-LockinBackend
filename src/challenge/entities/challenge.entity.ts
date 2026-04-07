@@ -48,6 +48,15 @@ export class Challenge {
     expectedOutput: string;
   }[];
 
+  @Column({ type: 'jsonb', default: [] })
+  quizQuestions: {
+    id: string;
+    prompt: string;
+    options: { id: string; text: string }[];
+    correctOptionIds: string[];
+    explanation?: string;
+  }[];
+
   @Column({ type: 'enum', enum: ChallengeDifficulty })
   difficulty: ChallengeDifficulty;
 

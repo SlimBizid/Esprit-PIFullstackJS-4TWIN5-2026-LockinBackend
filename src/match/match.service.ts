@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChallengeService } from 'src/challenge/challenge.service';
 import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
+import { evaluateQuizAnswers } from 'src/challenge/utils/evaluate-quiz.util';
 import { CodeExecutionService } from 'src/code-execution/code-execution.service';
 import { User } from 'src/user/entities/user.entity';
 import { Brackets, Repository } from 'typeorm';
@@ -39,7 +40,7 @@ export class MatchService {
   async createMatch(dto: CreateMatchDto, user: User) {
     const challenge = await this.challengeService.findOne(dto.challengeId);
 
-    if (challenge.type !== ChallengeType.PVP) {
+    if (![ChallengeType.PVP, ChallengeType.QUIZ_PVP].includes(challenge.type)) {
       throw new BadRequestException(
         'Only 1v1 challenges can be queued as matches.',
       );
@@ -107,7 +108,7 @@ export class MatchService {
   async listPublicMatches(dto: ListPublicMatchesDto, user: User) {
     const challenge = await this.challengeService.findOne(dto.challengeId);
 
-    if (challenge.type !== ChallengeType.PVP) {
+    if (![ChallengeType.PVP, ChallengeType.QUIZ_PVP].includes(challenge.type)) {
       throw new BadRequestException(
         'Public matchmaking is available only for 1v1 challenges.',
       );
@@ -139,7 +140,7 @@ export class MatchService {
   async joinRandomMatch(dto: ListPublicMatchesDto, user: User) {
     const challenge = await this.challengeService.findOne(dto.challengeId);
 
-    if (challenge.type !== ChallengeType.PVP) {
+    if (![ChallengeType.PVP, ChallengeType.QUIZ_PVP].includes(challenge.type)) {
       throw new BadRequestException(
         'Random matchmaking is available only for 1v1 challenges.',
       );
@@ -236,27 +237,22 @@ export class MatchService {
       throw new ConflictException('This match has already finished.');
     }
 
-    const execution = await this.codeExecutionService.runCode({
-      challengeId: match.challengeId,
-      language: dto.language,
-      sourceCode: dto.sourceCode,
-    });
-
-    const passedCount = execution.results.filter(
-      (result) => result.passed,
-    ).length;
-    const totalCount = execution.results.length;
-    const verdict = this.getVerdict(execution.results, passedCount, totalCount);
+    const isQuizMatch = match.challenge?.type === ChallengeType.QUIZ_PVP;
+    const evaluation = isQuizMatch
+      ? this.evaluateQuizSubmission(match.challenge.quizQuestions, dto.answers)
+      : await this.evaluateCodeSubmission(match.challengeId, dto);
 
     const submission = this.submissionRepository.create({
       matchId: match.id,
       userId: user.id,
-      language: dto.language,
-      sourceCode: dto.sourceCode,
-      verdict,
-      passedCount,
-      totalCount,
-      results: execution.results.map((result) => ({
+      language: isQuizMatch ? 'quiz' : (dto.language as string),
+      sourceCode: isQuizMatch
+        ? JSON.stringify(dto.answers ?? {})
+        : (dto.sourceCode as string),
+      verdict: evaluation.verdict,
+      passedCount: evaluation.passedCount,
+      totalCount: evaluation.totalCount,
+      results: evaluation.results.map((result) => ({
         passed: result.passed,
         actual: result.actual,
         expected: result.expected,
@@ -266,16 +262,19 @@ export class MatchService {
       })),
     });
 
-    await this.submissionRepository.save(submission);
+    const savedSubmission = await this.submissionRepository.save(submission);
 
-    if (verdict === MatchVerdict.ACCEPTED) {
+    if (evaluation.verdict === MatchVerdict.ACCEPTED) {
       match.status = MatchStatus.FINISHED;
       match.winnerId = user.id;
       match.endedAt = new Date();
       await this.matchRepository.save(match);
     }
 
-    return this.getMatch(match.id, user);
+    return {
+      match: await this.getMatch(match.id, user),
+      submission: this.serializeDetailedSubmission(savedSubmission),
+    };
   }
 
   async surrenderMatch(matchId: string, user: User) {
@@ -348,6 +347,60 @@ export class MatchService {
     return MatchVerdict.WRONG_ANSWER;
   }
 
+  private async evaluateCodeSubmission(
+    challengeId: number,
+    dto: SubmitMatchDto,
+  ) {
+    if (!dto.language || !dto.sourceCode?.trim()) {
+      throw new BadRequestException(
+        'Code matches require both a language and source code.',
+      );
+    }
+
+    const execution = await this.codeExecutionService.runCode({
+      challengeId,
+      language: dto.language as
+        | 'javascript'
+        | 'typescript'
+        | 'python'
+        | 'java'
+        | 'cpp',
+      sourceCode: dto.sourceCode,
+    });
+    const passedCount = execution.results.filter((result) => result.passed).length;
+    const totalCount = execution.results.length;
+
+    return {
+      results: execution.results,
+      passedCount,
+      totalCount,
+      verdict: this.getVerdict(execution.results, passedCount, totalCount),
+    };
+  }
+
+  private evaluateQuizSubmission(
+    questions: Array<{
+      id: string;
+      prompt: string;
+      options: Array<{ id: string; text: string }>;
+      correctOptionIds: string[];
+      explanation?: string;
+    }>,
+    answers?: Record<string, string[]>,
+  ) {
+    if (questions.length === 0) {
+      throw new BadRequestException(
+        'This quiz challenge does not have any questions configured.',
+      );
+    }
+
+    if (!answers || Object.keys(answers).length === 0) {
+      throw new BadRequestException('Select at least one answer before submitting.');
+    }
+
+    return evaluateQuizAnswers(questions, answers);
+  }
+
   private serializeMatch(match: Match, submissions: MatchSubmission[]) {
     return {
       id: match.id,
@@ -411,6 +464,19 @@ export class MatchService {
       username: message.user?.username ?? null,
       content: message.content,
       createdAt: message.createdAt,
+    };
+  }
+
+  private serializeDetailedSubmission(submission: MatchSubmission) {
+    return {
+      id: submission.id,
+      userId: submission.userId,
+      language: submission.language,
+      verdict: submission.verdict,
+      passedCount: submission.passedCount,
+      totalCount: submission.totalCount,
+      results: submission.results,
+      createdAt: submission.createdAt,
     };
   }
 }

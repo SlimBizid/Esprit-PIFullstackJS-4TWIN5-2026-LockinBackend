@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChallengeService } from 'src/challenge/challenge.service';
+import { ImposterSubmission } from 'src/imposter/entities/imposter-submission.entity';
 import { MatchSubmission } from 'src/match/entities/match-submission.entity';
 import { ChallengeSubmission } from 'src/submission/entities/challenge-submission.entity';
 import { User } from 'src/user/entities/user.entity';
@@ -39,6 +40,8 @@ export class ReviewService {
     private readonly challengeSubmissionRepository: Repository<ChallengeSubmission>,
     @InjectRepository(MatchSubmission)
     private readonly matchSubmissionRepository: Repository<MatchSubmission>,
+    @InjectRepository(ImposterSubmission)
+    private readonly imposterSubmissionRepository: Repository<ImposterSubmission>,
     private readonly challengeService: ChallengeService,
   ) {}
 
@@ -534,7 +537,18 @@ export class ReviewService {
       .andWhere('match.challengeId = :challengeId', { challengeId })
       .getCount();
 
-    return matchSubmissionCount > 0;
+    if (matchSubmissionCount > 0) {
+      return true;
+    }
+
+    const imposterSubmissionCount = await this.imposterSubmissionRepository
+      .createQueryBuilder('submission')
+      .innerJoin('submission.match', 'match')
+      .where('submission.userId = :userId', { userId })
+      .andWhere('match.challengeId = :challengeId', { challengeId })
+      .getCount();
+
+    return imposterSubmissionCount > 0;
   }
 
   private async getReviewOrThrow(reviewId: string) {

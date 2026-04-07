@@ -25,6 +25,8 @@ import { UserType } from 'src/user/enums/user-type.enum';
 import { ChallengeQueryDto } from './dto/get-challenges-query.dto';
 import { ChallengeResponseDto } from './dto/challenge-response.dto';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
+import { GenerateChallengeDraftDto } from './dto/generate-challenge-draft.dto';
+import { GeneratedChallengeDraftDto } from './dto/generated-challenge-draft.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { BulkImportResponseDto } from './dto/bulk-import-response.dto';
 import { parseCsvToChallenges } from './utils/csv-parser.util';
@@ -121,6 +123,21 @@ export class ChallengeController {
         'Failed to process CSV file: ' + errorMessage,
       );
     }
+  }
+
+  @Post('generate-draft')
+  @UseGuards(JwtAuthGuard)
+  async generateChallengeDraft(
+    @Body() generateDraftDto: GenerateChallengeDraftDto,
+    @Request() req: Request & { user: { type: UserType } },
+  ): Promise<GeneratedChallengeDraftDto> {
+    if (req.user?.type !== UserType.ADMIN) {
+      throw new ForbiddenException(
+        'Only administrators can generate challenge drafts.',
+      );
+    }
+
+    return this.challengeService.generateDraft(generateDraftDto);
   }
 
   @Patch(':id/edit')
