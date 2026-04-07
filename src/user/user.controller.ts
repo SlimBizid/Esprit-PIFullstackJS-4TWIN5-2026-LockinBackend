@@ -16,11 +16,19 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UserType } from './enums/user-type.enum';
+import { User } from './entities/user.entity';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
+
+  // Return all users (without sensitive data) i need it please don't delete it for now
+  @Get('/all-for-invite')
+  async findAllForInvite(): Promise<Partial<User>[]> {
+    const { data } = await this.userService.findAll(1, 1000, 'user');
+    return data;
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')

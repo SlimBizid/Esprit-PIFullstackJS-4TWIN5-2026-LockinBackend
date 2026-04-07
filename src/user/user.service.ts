@@ -107,6 +107,7 @@ export class UserService {
         return user;
       }
       return {
+        id: user.id,
         username: user.username,
         githubHandle: user.githubHandle,
         type: user.type,

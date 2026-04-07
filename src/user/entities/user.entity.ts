@@ -3,10 +3,11 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  ManyToOne,
+  ManyToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+
 import { Exclude } from 'class-transformer';
 
 import { UserType } from '../enums/user-type.enum';
@@ -43,6 +44,6 @@ export class User {
   @DeleteDateColumn()
   deletedAt: Date;
 
-  @ManyToOne(() => Team, (team) => team.users, { nullable: true })
-  team: Team;
+  @ManyToMany(() => Team, (team) => team.users)
+  teams: Team[];
 }
