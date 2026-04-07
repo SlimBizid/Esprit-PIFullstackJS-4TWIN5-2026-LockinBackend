@@ -9,6 +9,6 @@ import { LeaderboardController } from './leaderboard.controller';
   imports: [TypeOrmModule.forFeature([LeaderboardEntry, User])],
   controllers: [LeaderboardController],
   providers: [LeaderboardService],
-  exports: [LeaderboardService], 
+  exports: [LeaderboardService],
 })
 export class LeaderboardModule {}

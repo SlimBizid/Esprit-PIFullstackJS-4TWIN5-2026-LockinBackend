@@ -95,7 +95,9 @@ export class ChallengeService {
     });
 
     if (availableChallenges.length === 0) {
-      throw new NotFoundException('No solo challenges are available for today.');
+      throw new NotFoundException(
+        'No solo challenges are available for today.',
+      );
     }
 
     const now = new Date();

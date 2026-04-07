@@ -30,7 +30,9 @@ export class SubmissionService {
     }
 
     const execution = await this.codeExecutionService.runCode(dto);
-    const passedCount = execution.results.filter((result) => result.passed).length;
+    const passedCount = execution.results.filter(
+      (result) => result.passed,
+    ).length;
     const totalCount = execution.results.length;
     const verdict = this.getVerdict(execution.results, passedCount, totalCount);
 
@@ -79,7 +81,9 @@ export class SubmissionService {
     const submissions = await qb.getMany();
 
     return {
-      data: submissions.map((submission) => this.serializeSubmission(submission)),
+      data: submissions.map((submission) =>
+        this.serializeSubmission(submission),
+      ),
       meta: {
         itemCount: submissions.length,
         limit,

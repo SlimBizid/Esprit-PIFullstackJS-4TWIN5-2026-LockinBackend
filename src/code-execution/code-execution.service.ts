@@ -108,7 +108,9 @@ export class CodeExecutionService {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    const authToken = this.configService.get<string>('JUDGE0_AUTH_TOKEN')?.trim();
+    const authToken = this.configService
+      .get<string>('JUDGE0_AUTH_TOKEN')
+      ?.trim();
     const authUser = this.configService.get<string>('JUDGE0_AUTH_USER')?.trim();
 
     if (authToken) {
@@ -137,7 +139,9 @@ export class CodeExecutionService {
     );
 
     if (Number.isNaN(parsed)) {
-      throw new BadRequestException(`Unsupported execution language: ${language}`);
+      throw new BadRequestException(
+        `Unsupported execution language: ${language}`,
+      );
     }
 
     return parsed;
@@ -160,7 +164,9 @@ export class CodeExecutionService {
       case 'cpp':
         return this.buildCppHarness(sourceCode, args);
       default:
-        throw new BadRequestException(`Unsupported execution language: ${language}`);
+        throw new BadRequestException(
+          `Unsupported execution language: ${language}`,
+        );
     }
   }
 
@@ -656,10 +662,12 @@ int main() {
     }
 
     if (typeof value === 'object') {
-      return `{${Object.entries(value).map(
-        ([key, item]) =>
-          `${JSON.stringify(key)}: ${this.toPythonLiteral(item)}`,
-      ).join(', ')}}`;
+      return `{${Object.entries(value)
+        .map(
+          ([key, item]) =>
+            `${JSON.stringify(key)}: ${this.toPythonLiteral(item)}`,
+        )
+        .join(', ')}}`;
     }
 
     throw new BadRequestException('Unsupported Python literal value.');
@@ -724,9 +732,12 @@ int main() {
     }
 
     if (typeof value === 'object') {
-      return `JsonValue::object({${Object.entries(value).map(
-        ([key, item]) => `{${JSON.stringify(key)}, ${this.toCppLiteral(item)}}`,
-      ).join(', ')}})`;
+      return `JsonValue::object({${Object.entries(value)
+        .map(
+          ([key, item]) =>
+            `{${JSON.stringify(key)}, ${this.toCppLiteral(item)}}`,
+        )
+        .join(', ')}})`;
     }
 
     throw new BadRequestException('Unsupported C++ literal value.');
@@ -740,11 +751,14 @@ int main() {
       memory_limit: number;
     }>,
   ): Promise<Judge0SubmissionToken[]> {
-    const response = await fetch(`${this.getJudge0BaseUrl()}/submissions/batch`, {
-      method: 'POST',
-      headers: this.getJudge0Headers(),
-      body: JSON.stringify({ submissions }),
-    });
+    const response = await fetch(
+      `${this.getJudge0BaseUrl()}/submissions/batch`,
+      {
+        method: 'POST',
+        headers: this.getJudge0Headers(),
+        body: JSON.stringify({ submissions }),
+      },
+    );
 
     if (!response.ok) {
       throw new BadGatewayException(
