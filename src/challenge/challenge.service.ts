@@ -20,6 +20,13 @@ import { GeneratedChallengeDraftDto } from './dto/generated-challenge-draft.dto'
 @Injectable()
 export class ChallengeService {
   private static readonly SUPPORTED_TOPICS = Object.values(ChallengeTopic);
+  private static readonly EMPTY_STARTER_CODES: Record<string, string> = {
+    javascript: '',
+    typescript: '',
+    python: '',
+    java: '',
+    cpp: '',
+  };
 
   constructor(
     @InjectRepository(Challenge)
@@ -291,6 +298,13 @@ export class ChallengeService {
             'The JSON response must include:',
             'title, content, difficulty, type, topics, acceptanceRate, examples, constraints, conditions, starterCode, starterCodes, cases.',
             'starterCodes must include javascript, typescript, python, java, and cpp.',
+            'Use these exact execution contracts:',
+            'javascript: function solution(...args) { /* ... */ }',
+            'typescript: function solution(...args: unknown[]): unknown { /* ... */ }',
+            'python: def solution(*args):',
+            'java: class Solution { public Object solution(Object... args) { /* ... */ } }',
+            'cpp: class Solution { public: JsonValue solution(const std::vector<JsonValue>& args) { /* ... */ } };',
+            'Do not use names like subtract, addTwoNumbers, solve, or main. The callable entry point must be named solution.',
             'cases must be an array of 3 to 5 test cases.',
             'Each test case must include inputs and expectedOutput.',
             'Each input must have type and value as strings.',
@@ -338,19 +352,28 @@ export class ChallengeService {
       request.type === ChallengeType.QUIZ ||
       request.type === ChallengeType.QUIZ_PVP;
     const starterCodes: Record<string, string> = isQuizType
-      ? {
-          javascript: '',
-          typescript: '',
-          python: '',
-          java: '',
-          cpp: '',
-        }
+      ? ChallengeService.EMPTY_STARTER_CODES
       : {
-          javascript: String(draft?.starterCodes?.javascript ?? draft?.starterCode ?? ''),
-          typescript: String(draft?.starterCodes?.typescript ?? ''),
-          python: String(draft?.starterCodes?.python ?? ''),
-          java: String(draft?.starterCodes?.java ?? ''),
-          cpp: String(draft?.starterCodes?.cpp ?? ''),
+          javascript: this.normalizeStarterCode(
+            'javascript',
+            String(draft?.starterCodes?.javascript ?? draft?.starterCode ?? ''),
+          ),
+          typescript: this.normalizeStarterCode(
+            'typescript',
+            String(draft?.starterCodes?.typescript ?? ''),
+          ),
+          python: this.normalizeStarterCode(
+            'python',
+            String(draft?.starterCodes?.python ?? ''),
+          ),
+          java: this.normalizeStarterCode(
+            'java',
+            String(draft?.starterCodes?.java ?? ''),
+          ),
+          cpp: this.normalizeStarterCode(
+            'cpp',
+            String(draft?.starterCodes?.cpp ?? ''),
+          ),
         };
     const topics = Array.isArray(draft?.topics)
       ? draft.topics.filter((topic: string) =>
@@ -480,5 +503,127 @@ export class ChallengeService {
         (question): question is NonNullable<typeof question> =>
           !!question && question.prompt.length > 0,
       );
+  }
+
+  private normalizeStarterCode(language: string, value: string) {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+      return this.getFallbackStarterCode(language);
+    }
+
+    switch (language) {
+      case 'javascript': {
+        const normalized = trimmed
+          .replace(
+            /\b(?:const|let|var)\s+\w+\s*=\s*function\s*\(/,
+            'function solution(',
+          )
+          .replace(/\bfunction\s+(?!solution\b)\w+\s*\(/, 'function solution(')
+          .replace(
+            /\b(?:const|let|var)\s+\w+\s*=\s*\((.*?)\)\s*=>/s,
+            'function solution($1)',
+          );
+
+        return normalized.includes('solution')
+          ? normalized
+          : this.getFallbackStarterCode(language);
+      }
+      case 'typescript': {
+        const normalized = trimmed
+          .replace(
+            /\b(?:const|let|var)\s+\w+\s*=\s*function\s*\(/,
+            'function solution(',
+          )
+          .replace(/\bfunction\s+(?!solution\b)\w+\s*\(/, 'function solution(')
+          .replace(
+            /\b(?:const|let|var)\s+\w+\s*=\s*\((.*?)\)\s*:\s*([^{=]+)=>/s,
+            'function solution($1): $2',
+          );
+
+        return normalized.includes('solution')
+          ? normalized
+          : this.getFallbackStarterCode(language);
+      }
+      case 'python': {
+        const normalized = trimmed.replace(
+          /\bdef\s+(?!solution\b)\w+\s*\(/,
+          'def solution(',
+        );
+
+        return normalized.includes('def solution')
+          ? normalized
+          : this.getFallbackStarterCode(language);
+      }
+      case 'java': {
+        const normalized = trimmed.replace(
+          /\bpublic\s+Object\s+(?!solution\b)\w+\s*\(/,
+          'public Object solution(',
+        );
+
+        return normalized.includes('class Solution') &&
+          normalized.includes('solution(')
+          ? normalized
+          : this.getFallbackStarterCode(language);
+      }
+      case 'cpp': {
+        const normalized = trimmed.replace(
+          /\bJsonValue\s+(?!solution\b)\w+\s*\(/,
+          'JsonValue solution(',
+        );
+
+        return normalized.includes('class Solution') &&
+          normalized.includes('solution(')
+          ? normalized
+          : this.getFallbackStarterCode(language);
+      }
+      default:
+        return trimmed;
+    }
+  }
+
+  private getFallbackStarterCode(language: string) {
+    switch (language) {
+      case 'typescript':
+        return [
+          'function solution(...args: unknown[]): unknown {',
+          '  // Implement your answer here.',
+          '  return args',
+          '}',
+        ].join('\n');
+      case 'python':
+        return [
+          'def solution(*args):',
+          '    # Implement your answer here.',
+          '    return args',
+        ].join('\n');
+      case 'java':
+        return [
+          'class Solution {',
+          '    public Object solution(Object... args) {',
+          '        // Implement your answer here.',
+          '        return args;',
+          '    }',
+          '}',
+        ].join('\n');
+      case 'cpp':
+        return [
+          'class Solution {',
+          'public:',
+          '    JsonValue solution(const std::vector<JsonValue>& args) {',
+          '        // Implement your answer here.',
+          '        return args.empty() ? JsonValue(nullptr) : args[0];',
+          '    }',
+          '};',
+        ].join('\n');
+      case 'javascript':
+      default:
+        return [
+          'function solution(...args) {',
+          '  // Implement your answer here.',
+          '  return args',
+          '}',
+        ].join('\n');
+    }
   }
 }
