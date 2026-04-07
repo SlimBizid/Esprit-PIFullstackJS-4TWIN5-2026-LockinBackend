@@ -11,6 +11,7 @@ import { Repository } from 'typeorm';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { ListMySubmissionsDto } from './dto/list-my-submissions.dto';
 import { ChallengeSubmission } from './entities/challenge-submission.entity';
+import { LeaderboardService } from 'src/leaderboard/leaderboard.service';
 
 @Injectable()
 export class SubmissionService {
@@ -19,6 +20,7 @@ export class SubmissionService {
     private readonly submissionRepository: Repository<ChallengeSubmission>,
     private readonly challengeService: ChallengeService,
     private readonly codeExecutionService: CodeExecutionService,
+    private readonly leaderboardService: LeaderboardService,
   ) {}
 
   async createSubmission(dto: CreateSubmissionDto, user: User) {
@@ -82,7 +84,9 @@ export class SubmissionService {
     const submissions = await qb.getMany();
 
     return {
-      data: submissions.map((submission) => this.serializeSubmission(submission)),
+      data: submissions.map((submission) =>
+        this.serializeSubmission(submission),
+      ),
       meta: {
         itemCount: submissions.length,
         limit,

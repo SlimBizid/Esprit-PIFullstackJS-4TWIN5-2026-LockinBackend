@@ -48,7 +48,9 @@ export class MatchService {
 
     const existingMatch = await this.matchRepository
       .createQueryBuilder('match')
-      .where('match.challengeId = :challengeId', { challengeId: dto.challengeId })
+      .where('match.challengeId = :challengeId', {
+        challengeId: dto.challengeId,
+      })
       .andWhere('match.status IN (:...statuses)', {
         statuses: [MatchStatus.WAITING, MatchStatus.ACTIVE],
       })
@@ -81,7 +83,9 @@ export class MatchService {
     const match = await this.findMatchById(matchId);
 
     if (match.status !== MatchStatus.WAITING) {
-      throw new ConflictException('This match is no longer waiting for players.');
+      throw new ConflictException(
+        'This match is no longer waiting for players.',
+      );
     }
 
     if (match.playerOneId === user.id) {
@@ -148,7 +152,9 @@ export class MatchService {
       .leftJoinAndSelect('match.playerOne', 'playerOne')
       .leftJoinAndSelect('match.playerTwo', 'playerTwo')
       .leftJoinAndSelect('match.winner', 'winner')
-      .where('match.challengeId = :challengeId', { challengeId: dto.challengeId })
+      .where('match.challengeId = :challengeId', {
+        challengeId: dto.challengeId,
+      })
       .andWhere('match.status = :status', { status: MatchStatus.WAITING })
       .andWhere('match.visibility = :visibility', {
         visibility: MatchVisibility.PUBLIC,
@@ -222,7 +228,9 @@ export class MatchService {
     this.ensureParticipant(match, user.id);
 
     if (match.status === MatchStatus.WAITING) {
-      throw new ConflictException('This match does not have a second player yet.');
+      throw new ConflictException(
+        'This match does not have a second player yet.',
+      );
     }
 
     if (match.status === MatchStatus.FINISHED) {

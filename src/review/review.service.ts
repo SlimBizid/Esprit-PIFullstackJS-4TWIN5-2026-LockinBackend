@@ -620,7 +620,9 @@ export class ReviewService {
       upvoteCount: upvotes.length,
       commentCount: comments.length,
       hasUpvoted: upvotes.some((upvote) => upvote.userId === currentUser.id),
-      hasReported: reports.some((report) => report.reporterId === currentUser.id),
+      hasReported: reports.some(
+        (report) => report.reporterId === currentUser.id,
+      ),
       canDelete: currentUser.type === UserType.ADMIN,
       comments: comments.map((comment) =>
         this.serializeComment(
@@ -647,7 +649,9 @@ export class ReviewService {
       updatedAt: comment.updatedAt,
       deletedAt: comment.deletedAt,
       isDeleted,
-      hasReported: reports.some((report) => report.reporterId === currentUser.id),
+      hasReported: reports.some(
+        (report) => report.reporterId === currentUser.id,
+      ),
       canDelete: currentUser.type === UserType.ADMIN,
       author: comment.user
         ? {
@@ -683,7 +687,9 @@ export class ReviewService {
             username: review.user.username,
           }
         : null,
-      comments: comments.map((comment) => this.serializeCommentForAdmin(comment)),
+      comments: comments.map((comment) =>
+        this.serializeCommentForAdmin(comment),
+      ),
     };
   }
 

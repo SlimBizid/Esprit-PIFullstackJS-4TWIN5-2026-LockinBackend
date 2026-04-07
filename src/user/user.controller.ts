@@ -16,6 +16,8 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UserType } from './enums/user-type.enum';
+import { type UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
@@ -44,6 +46,15 @@ export class UserController {
   @Get('profile/:username')
   async getProfile(@Request() req, @Param('username') username: string) {
     return this.userService.getProfile(username);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('edit')
+  async editProfile(
+    @Request() req: Request & { user: User },
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.userService.updateUser(req.user, updateUserDto);
   }
 
   @UseGuards(JwtAuthGuard)

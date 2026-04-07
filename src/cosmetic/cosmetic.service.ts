@@ -11,12 +11,12 @@ export class CosmeticService {
   constructor(
     @InjectRepository(Cosmetic)
     private readonly cosmeticRepository: Repository<Cosmetic>,
-  ) { }
+  ) {}
 
   async create(dto: CreateCosmeticDto): Promise<Cosmetic> {
     if (dto.achievementId) {
       // TODO: Check if achievement with this UUID exists before creating cosmetic.
-      // Throw an error if it doesn't. 
+      // Throw an error if it doesn't.
     }
 
     const cosmetic = this.cosmeticRepository.create({
@@ -66,7 +66,7 @@ export class CosmeticService {
 
     if (dto.achievementId !== undefined) {
       // TODO: Check if achievement with this UUID exists before updating cosmetic.
-      // Throw an error if it doesn't. 
+      // Throw an error if it doesn't.
     }
 
     Object.assign(cosmetic, {
