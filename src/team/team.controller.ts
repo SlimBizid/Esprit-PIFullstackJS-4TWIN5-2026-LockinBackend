@@ -67,10 +67,11 @@ export class TeamController {
   }
 
   // Inviter un utilisateur
-  @Post(':id/invite/:userId')
+
+  @Post(':id/invite')
   inviteUser(
     @Param('id', ParseIntPipe) teamId: number,
-    @Param('userId') userId: string,
+    @Body('userId') userId: string,
   ) {
     return this.teamService.inviteUser(teamId, userId);
   }

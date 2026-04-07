@@ -160,6 +160,47 @@ export class ChallengeService {
     }
   }
 
+  async bulkCreate(
+    createDtos: CreateChallengeDto[],
+  ): Promise<{ successCount: number; failureCount: number; errors: string[] }> {
+    let successCount = 0;
+    let failureCount = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < createDtos.length; i++) {
+      const dto = createDtos[i];
+      try {
+        const existing = await this.findByTitle(dto.title);
+        if (existing) {
+          throw new ConflictException(`Title "${dto.title}" is already taken.`);
+        }
+
+        const newChallenge = this.challengeRepository.create({
+          title: dto.title,
+          content: dto.content,
+          examples: dto.examples,
+          constraints: dto.constraints,
+          conditions: dto.conditions,
+          cases: dto.cases,
+          type: dto.type,
+          difficulty: dto.difficulty,
+          topics: dto.topics,
+          acceptanceRate: dto.acceptanceRate ?? 100,
+        });
+
+        await this.challengeRepository.save(newChallenge);
+        successCount++;
+      } catch (error) {
+        failureCount++;
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        errors.push(`Row ${i + 1}: ${errorMessage}`);
+      }
+    }
+
+    return { successCount, failureCount, errors };
+  }
+
   async generateDraft(
     dto: GenerateChallengeDraftDto,
   ): Promise<GeneratedChallengeDraftDto> {
@@ -384,7 +425,7 @@ export class ChallengeService {
     return {
       title: request.title.trim(),
       content: String(draft?.content ?? '').trim(),
-      starterCode: isQuizType ? '' : starterCodes.javascript ?? '',
+      starterCode: isQuizType ? '' : (starterCodes.javascript ?? ''),
       starterCodes,
       examples: this.normalizeStringArray(draft?.examples),
       constraints: this.normalizeStringArray(draft?.constraints),
@@ -409,7 +450,9 @@ export class ChallengeService {
   }
 
   private normalizeDifficulty(value: unknown) {
-    return Object.values(ChallengeDifficulty).includes(value as ChallengeDifficulty)
+    return Object.values(ChallengeDifficulty).includes(
+      value as ChallengeDifficulty,
+    )
       ? (value as ChallengeDifficulty)
       : ChallengeDifficulty.MEDIUM;
   }
@@ -454,8 +497,10 @@ export class ChallengeService {
       .filter(
         (
           testCase,
-        ): testCase is { inputs: Array<{ type: string; value: string }>; expectedOutput: string } =>
-          !!testCase,
+        ): testCase is {
+          inputs: Array<{ type: string; value: string }>;
+          expectedOutput: string;
+        } => !!testCase,
       );
   }
 
@@ -524,7 +569,9 @@ export class ChallengeService {
             /\b(?:const|let|var)\s+\w+\s*=\s*\((.*?)\)\s*=>/s,
             'function solution($1)',
           );
-        const signatureMatch = normalized.match(/function\s+solution\s*\(([^)]*)\)/s);
+        const signatureMatch = normalized.match(
+          /function\s+solution\s*\(([^)]*)\)/s,
+        );
 
         if (!signatureMatch) {
           return this.getFallbackStarterCode(language);
@@ -574,7 +621,9 @@ export class ChallengeService {
           /\bdef\s+(?!solution\b)\w+\s*\(/,
           'def solution(',
         );
-        const signatureMatch = normalized.match(/def\s+solution\s*\(([^)]*)\)\s*:/);
+        const signatureMatch = normalized.match(
+          /def\s+solution\s*\(([^)]*)\)\s*:/,
+        );
 
         if (!signatureMatch) {
           return this.getFallbackStarterCode(language);

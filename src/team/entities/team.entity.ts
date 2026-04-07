@@ -4,10 +4,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Index,
-  OneToMany,
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
@@ -26,7 +27,9 @@ export class Team {
   @DeleteDateColumn()
   teamDeletionDate: Date;
 
-  @OneToMany(() => User, (user) => user.team)
+  // ✅ FIXED RELATION
+  @ManyToMany(() => User, (user) => user.teams)
+  @JoinTable()
   users: User[];
 
   @ManyToOne(() => User)

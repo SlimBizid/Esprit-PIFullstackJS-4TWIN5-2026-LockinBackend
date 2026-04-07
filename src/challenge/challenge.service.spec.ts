@@ -140,4 +140,95 @@ describe('ChallengeService', () => {
       await expect(service.restore(1)).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('bulkCreate', () => {
+    it('should create multiple challenges successfully', async () => {
+      const createDtos = [
+        {
+          title: 'Challenge 1',
+          content: 'Content 1',
+          type: 'solo',
+          difficulty: 'easy',
+          topics: ['Array'],
+        },
+        {
+          title: 'Challenge 2',
+          content: 'Content 2',
+          type: 'solo',
+          difficulty: 'easy',
+          topics: ['String'],
+        },
+      ];
+      const newChallenges = [
+        { ...createDtos[0], id: 1 },
+        { ...createDtos[1], id: 2 },
+      ];
+
+      mockRepository.findOne.mockResolvedValue(null);
+      mockRepository.create
+        .mockReturnValueOnce(newChallenges[0])
+        .mockReturnValueOnce(newChallenges[1]);
+      mockRepository.save
+        .mockResolvedValueOnce(newChallenges[0])
+        .mockResolvedValueOnce(newChallenges[1]);
+
+      const result = await service.bulkCreate(createDtos as any);
+      expect(result.successCount).toBe(2);
+      expect(result.failureCount).toBe(0);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should handle partial failures', async () => {
+      const createDtos = [
+        {
+          title: 'Challenge 1',
+          content: 'Content 1',
+          type: 'solo',
+          difficulty: 'easy',
+          topics: ['Array'],
+        },
+        {
+          title: 'Challenge 1',
+          content: 'Content 2',
+          type: 'solo',
+          difficulty: 'easy',
+          topics: ['String'],
+        }, // duplicate title
+      ];
+
+      mockRepository.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 1, title: 'Challenge 1' });
+      mockRepository.create.mockReturnValue({ id: 1 });
+      mockRepository.save.mockResolvedValue({ id: 1 });
+
+      const result = await service.bulkCreate(createDtos as any);
+      expect(result.successCount).toBe(1);
+      expect(result.failureCount).toBe(1);
+      expect(result.errors).toContain(
+        'Row 2: Title "Challenge 1" is already taken.',
+      );
+    });
+
+    it('should handle save failures', async () => {
+      const createDtos = [
+        {
+          title: 'Challenge 1',
+          content: 'Content 1',
+          type: 'solo',
+          difficulty: 'easy',
+          topics: ['Array'],
+        },
+      ];
+
+      mockRepository.findOne.mockResolvedValue(null);
+      mockRepository.create.mockReturnValue({});
+      mockRepository.save.mockRejectedValue(new Error('DB Error'));
+
+      const result = await service.bulkCreate(createDtos as any);
+      expect(result.successCount).toBe(0);
+      expect(result.failureCount).toBe(1);
+      expect(result.errors).toContain('Row 1: DB Error');
+    });
+  });
 });
