@@ -55,10 +55,14 @@ export class UserController {
     @Query('type') type?: UserType,
     @Query('search') search?: string,
   ) {
-    if (req.user.type !== UserType.ADMIN) {
-      throw new ForbiddenException('Only admins can list users');
-    }
-    return this.userService.findAll(Number(page), Number(limit), type, search);
+    const requesterRole: UserType = req.user.type;
+    return this.userService.findAll(
+      Number(page),
+      Number(limit),
+      requesterRole,
+      type,
+      search,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

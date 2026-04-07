@@ -83,6 +83,7 @@ export class UserService {
   async findAll(
     page: number = 1,
     limit: number = 10,
+    role: string,
     type?: UserType,
     search?: string,
   ) {
@@ -99,11 +100,22 @@ export class UserService {
       skip,
       take: limit,
       order: { createdAt: 'DESC' },
-      withDeleted: true,
+      withDeleted: role === UserType.ADMIN,
+    });
+
+    const data = users.map((user) => {
+      if (role === UserType.ADMIN) {
+        return user;
+      }
+      return {
+        username: user.username,
+        githubHandle: user.githubHandle,
+        type: user.type,
+      };
     });
 
     return {
-      data: users,
+      data,
       total,
       page,
       lastPage: Math.ceil(total / limit),
