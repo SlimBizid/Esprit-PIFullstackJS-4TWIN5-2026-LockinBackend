@@ -3,12 +3,15 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  ManyToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+
 import { Exclude } from 'class-transformer';
 
 import { UserType } from '../enums/user-type.enum';
+import { Team } from 'src/team/entities/team.entity';
 
 @Entity('users')
 export class User {
@@ -43,4 +46,7 @@ export class User {
   @Exclude()
   @DeleteDateColumn()
   deletedAt: Date;
+
+  @ManyToMany(() => Team, (team) => team.users)
+  teams: Team[];
 }

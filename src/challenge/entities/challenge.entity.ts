@@ -27,6 +27,12 @@ export class Challenge {
   @Column({ type: 'text' })
   content: string;
 
+  @Column({ type: 'text', default: '' })
+  starterCode: string;
+
+  @Column({ type: 'jsonb', default: {} })
+  starterCodes: Record<string, string>;
+
   @Column('text', { array: true, default: [] })
   examples: string[];
 

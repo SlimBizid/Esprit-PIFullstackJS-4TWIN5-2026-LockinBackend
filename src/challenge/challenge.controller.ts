@@ -31,7 +31,6 @@ import { parseCsvToChallenges } from './utils/csv-parser.util';
 
 @Controller('challenges')
 @UseInterceptors(ClassSerializerInterceptor)
-@UseGuards(JwtAuthGuard)
 export class ChallengeController {
   constructor(private challengeService: ChallengeService) {}
 
@@ -47,6 +46,15 @@ export class ChallengeController {
     return result;
   }
 
+  @Get('daily/current')
+  async getDailyChallenge(
+    @Request() req: Request & { user: { type: UserType } },
+  ) {
+    const userRole = req.user?.type || UserType.PLAYER;
+
+    return this.challengeService.findDailyChallenge(userRole);
+  }
+
   @Get(':id')
   async getChallengeById(
     @Param('id', ParseIntPipe) id: number,
@@ -58,6 +66,7 @@ export class ChallengeController {
   }
 
   @Post('add')
+  @UseGuards(JwtAuthGuard)
   async postChallenge(
     @Body() createChallengeDto: CreateChallengeDto,
     @Request() req: Request & { user: { type: UserType } },
@@ -115,6 +124,7 @@ export class ChallengeController {
   }
 
   @Patch(':id/edit')
+  @UseGuards(JwtAuthGuard)
   async patchChallenge(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateChallengeDto: UpdateChallengeDto,
@@ -128,6 +138,7 @@ export class ChallengeController {
   }
 
   @Patch(':id/restore')
+  @UseGuards(JwtAuthGuard)
   async restoreChallenge(
     @Param('id', ParseIntPipe) id: number,
     @Request() req: Request & { user: { type: UserType } },
@@ -146,6 +157,7 @@ export class ChallengeController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteChallenge(
     @Param('id', ParseIntPipe) id: number,

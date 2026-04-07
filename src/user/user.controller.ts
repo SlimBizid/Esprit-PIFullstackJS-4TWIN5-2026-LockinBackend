@@ -16,15 +16,24 @@ import {
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserService } from './user.service';
 import { UserType } from './enums/user-type.enum';
+import { type UpdateUserDto } from './dto/update-user.dto';
+import { User } from './entities/user.entity';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
 
+  // Return all users (without sensitive data) i need it please don't delete it for now
+  @Get('/all-for-invite')
+  async findAllForInvite(): Promise<Partial<User>[]> {
+    const { data } = await this.userService.findAll(1, 1000, 'user');
+    return data;
+  }
+
   @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  async getProfile(@Request() req) {
+  @Get('me')
+  async me(@Request() req) {
     const user = await this.userService.findByUsername(req.user.username);
 
     if (!user) {
@@ -41,6 +50,20 @@ export class UserController {
     };
   }
 
+  @Get('profile/:username')
+  async getProfile(@Request() req, @Param('username') username: string) {
+    return this.userService.getProfile(username);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('edit')
+  async editProfile(
+    @Request() req: Request & { user: User },
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.userService.updateUser(req.user, updateUserDto);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get()
   async findAll(
@@ -50,7 +73,7 @@ export class UserController {
     @Query('type') type?: UserType,
     @Query('search') search?: string,
   ) {
-    const requesterRole = req.user.type;
+    const requesterRole: UserType = req.user.type;
     return this.userService.findAll(
       Number(page),
       Number(limit),
