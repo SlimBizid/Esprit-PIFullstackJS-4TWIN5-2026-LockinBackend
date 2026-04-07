@@ -83,7 +83,6 @@ export class UserService {
   async findAll(
     page: number = 1,
     limit: number = 10,
-    role: string,
     type?: UserType,
     search?: string,
   ) {
@@ -100,25 +99,24 @@ export class UserService {
       skip,
       take: limit,
       order: { createdAt: 'DESC' },
-    });
-
-    const data = users.map((user) => {
-      if (role === 'admin') {
-        return user;
-      }
-      return {
-        username: user.username,
-        githubHandle: user.githubHandle,
-        type: user.type,
-      };
+      withDeleted: true,
     });
 
     return {
-      data,
+      data: users,
       total,
       page,
       lastPage: Math.ceil(total / limit),
     };
+  }
+
+  async findOneById(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+    return user;
   }
 
   async updateUserRole(id: string, updated_role: UserType) {

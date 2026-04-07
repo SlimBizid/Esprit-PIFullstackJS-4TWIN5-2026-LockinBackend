@@ -55,14 +55,19 @@ export class UserController {
     @Query('type') type?: UserType,
     @Query('search') search?: string,
   ) {
-    const requesterRole: UserType = req.user.type;
-    return this.userService.findAll(
-      Number(page),
-      Number(limit),
-      requesterRole,
-      type,
-      search,
-    );
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admins can list users');
+    }
+    return this.userService.findAll(Number(page), Number(limit), type, search);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  async findOne(@Param('id') id: string, @Request() req) {
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admins can view user details');
+    }
+    return this.userService.findOneById(id);
   }
 
   @UseGuards(JwtAuthGuard)
