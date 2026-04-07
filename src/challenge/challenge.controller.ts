@@ -78,6 +78,7 @@ export class ChallengeController {
   }
 
   @Post('generate-draft')
+  @UseGuards(JwtAuthGuard)
   async generateChallengeDraft(
     @Body() generateDraftDto: GenerateChallengeDraftDto,
     @Request() req: Request & { user: { type: UserType } },
