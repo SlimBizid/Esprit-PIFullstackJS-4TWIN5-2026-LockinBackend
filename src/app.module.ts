@@ -16,8 +16,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { LeaderboardEntry } from './leaderboard/entities/leaderboard.entity';
 
-
-
 @Module({
   imports: [
     ConfigModule.forRoot({

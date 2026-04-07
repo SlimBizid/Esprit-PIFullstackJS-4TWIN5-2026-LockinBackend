@@ -15,7 +15,10 @@ import {
   Request,
   UseGuards,
   UseInterceptors,
+  UploadedFile,
+  UseInterceptors as UseInterceptorsFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ChallengeService } from './challenge.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UserType } from 'src/user/enums/user-type.enum';
@@ -23,6 +26,8 @@ import { ChallengeQueryDto } from './dto/get-challenges-query.dto';
 import { ChallengeResponseDto } from './dto/challenge-response.dto';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
+import { BulkImportResponseDto } from './dto/bulk-import-response.dto';
+import { parseCsvToChallenges } from './utils/csv-parser.util';
 
 @Controller('challenges')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -64,6 +69,49 @@ export class ChallengeController {
     }
 
     return await this.challengeService.create(createChallengeDto);
+  }
+
+  @Post('import')
+  @UseInterceptors(FileInterceptor('file'))
+  async importChallenges(
+    @UploadedFile() file: any,
+    @Request() req: Request & { user: { type: UserType } },
+  ): Promise<BulkImportResponseDto> {
+    if (
+      req.user?.type !== UserType.ADMIN &&
+      req.user?.type !== UserType.CONTRIBUTOR
+    ) {
+      throw new ForbiddenException(
+        'Only administrators and approved contributors can import challenges.',
+      );
+    }
+
+    if (!file) {
+      throw new ForbiddenException('No file uploaded.');
+    }
+
+    if (!file.originalname.endsWith('.csv')) {
+      throw new ForbiddenException('Only CSV files are allowed.');
+    }
+
+    try {
+      const { challenges, errors: parseErrors } = await parseCsvToChallenges(
+        file.buffer,
+      );
+      const result = await this.challengeService.bulkCreate(challenges);
+
+      return {
+        successCount: result.successCount,
+        failureCount: result.failureCount + parseErrors.length,
+        errors: [...parseErrors, ...result.errors],
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      throw new ForbiddenException(
+        'Failed to process CSV file: ' + errorMessage,
+      );
+    }
   }
 
   @Patch(':id/edit')

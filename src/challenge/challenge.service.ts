@@ -109,6 +109,47 @@ export class ChallengeService {
     }
   }
 
+  async bulkCreate(
+    createDtos: CreateChallengeDto[],
+  ): Promise<{ successCount: number; failureCount: number; errors: string[] }> {
+    let successCount = 0;
+    let failureCount = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < createDtos.length; i++) {
+      const dto = createDtos[i];
+      try {
+        const existing = await this.findByTitle(dto.title);
+        if (existing) {
+          throw new ConflictException(`Title "${dto.title}" is already taken.`);
+        }
+
+        const newChallenge = this.challengeRepository.create({
+          title: dto.title,
+          content: dto.content,
+          examples: dto.examples,
+          constraints: dto.constraints,
+          conditions: dto.conditions,
+          cases: dto.cases,
+          type: dto.type,
+          difficulty: dto.difficulty,
+          topics: dto.topics,
+          acceptanceRate: dto.acceptanceRate ?? 100,
+        });
+
+        await this.challengeRepository.save(newChallenge);
+        successCount++;
+      } catch (error) {
+        failureCount++;
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        errors.push(`Row ${i + 1}: ${errorMessage}`);
+      }
+    }
+
+    return { successCount, failureCount, errors };
+  }
+
   async update(id: number, updateDto: UpdateChallengeDto): Promise<Challenge> {
     const challenge = await this.findOne(id, UserType.ADMIN);
 

@@ -23,7 +23,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private emailService: EmailService,
-     private leaderboardService: LeaderboardService,
+    private leaderboardService: LeaderboardService,
     private tokenBlacklistService: TokenBlacklistService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -77,20 +77,20 @@ export class AuthService {
     };
   }
   async SignUp(
-  username: string,
-  email: string,
-  password: string,
-  githubHandle?: string,
-): Promise<void> {
-  await this.userService.CreateUser(username, email, password, githubHandle);
-  const newUser = await this.userService.findByEmail(email);
-  if (newUser) {
-    await this.leaderboardService.createEntry({ userId: newUser.id });
+    username: string,
+    email: string,
+    password: string,
+    githubHandle?: string,
+  ): Promise<void> {
+    await this.userService.CreateUser(username, email, password, githubHandle);
+    const newUser = await this.userService.findByEmail(email);
+    if (newUser) {
+      await this.leaderboardService.createEntry({ userId: newUser.id });
+    }
   }
-}
-async awardLoginXp(userId: string): Promise<void> {
-  await this.leaderboardService.awardLoginXp(userId);
-}
+  async awardLoginXp(userId: string): Promise<void> {
+    await this.leaderboardService.awardLoginXp(userId);
+  }
 
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,

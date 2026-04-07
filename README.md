@@ -57,6 +57,47 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+## Bulk Challenge Import
+
+Administrators and approved contributors can import multiple challenges at once using a CSV file.
+
+### CSV Format
+
+The CSV file must have the following columns:
+
+- `title`: Challenge title (required)
+- `content`: Challenge description (required)
+- `examples`: JSON array of example strings (optional)
+- `constraints`: JSON array of constraint strings (optional)
+- `conditions`: JSON array of condition strings (optional)
+- `cases`: JSON array of test case objects (optional)
+- `type`: Challenge type (`solo`, `pvp`, `teams`) (required)
+- `difficulty`: Difficulty level (`easy`, `medium`, `hard`) (required)
+- `topics`: JSON array of topic strings (required, at least one)
+- `acceptanceRate`: Number between 0-100 (optional, defaults to 100)
+
+### Example CSV
+
+See `sample-challenges.csv` for an example.
+
+### API Endpoint
+
+**POST** `/challenges/import`
+
+- **Authorization**: Requires JWT token with admin or contributor role
+- **Content-Type**: `multipart/form-data`
+- **Body**: `file` field containing the CSV file
+
+**Response**:
+
+```json
+{
+  "successCount": 2,
+  "failureCount": 1,
+  "errors": ["Row 3: Invalid difficulty value"]
+}
+```
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

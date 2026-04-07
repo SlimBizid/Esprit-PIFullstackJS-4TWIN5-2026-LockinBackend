@@ -5,24 +5,21 @@ import { UseGuards } from '@nestjs/common';
 import { UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
 
 @Controller('leaderboard')
-@UseGuards(JwtAuthGuard) 
+@UseGuards(JwtAuthGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class LeaderboardController {
   constructor(private readonly leaderboardService: LeaderboardService) {}
 
-  
   @Get('score')
   getScoreLeaderboard() {
     return this.leaderboardService.getScoreLeaderboard();
   }
 
-  
   @Get('xp')
   getXpLeaderboard() {
     return this.leaderboardService.getXpLeaderboard();
   }
 
-  
   @Get('user/:userId')
   getUserStanding(@Param('userId', ParseUUIDPipe) userId: string) {
     return this.leaderboardService.getUserStanding(userId);

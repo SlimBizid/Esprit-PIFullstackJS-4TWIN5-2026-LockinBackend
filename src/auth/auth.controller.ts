@@ -20,12 +20,12 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @UseGuards(LocalAuthGuard)
-@Post('login')
-async login(@Request() req, @Res({ passthrough: true }) res: Response) {
-  await this.authService.awardLoginXp(req.user.id);  
-  this.authService.setTokenCookies(res, req.user);
-  return this.authService.getUserDTO(req.user);
-}
+  @Post('login')
+  async login(@Request() req, @Res({ passthrough: true }) res: Response) {
+    await this.authService.awardLoginXp(req.user.id);
+    this.authService.setTokenCookies(res, req.user);
+    return this.authService.getUserDTO(req.user);
+  }
   @Post('signup')
   signUp(@Body() user: SignUpDto) {
     return this.authService.SignUp(
