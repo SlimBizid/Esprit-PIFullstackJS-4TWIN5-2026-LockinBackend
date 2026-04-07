@@ -21,7 +21,8 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(@Request() req, @Res({ passthrough: true }) res: Response) {
+  async login(@Request() req, @Res({ passthrough: true }) res: Response) {
+    await this.authService.awardLoginXp(req.user.id);
     this.authService.setTokenCookies(res, req.user);
     return this.authService.getUserDTO(req.user);
   }
