@@ -19,7 +19,6 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { LeaderboardEntry } from './leaderboard/entities/leaderboard.entity';
 import { CodeExecutionController } from './code-execution/code-execution.controller';
 import { CodeExecutionService } from './code-execution/code-execution.service';
-import { MatchMessage } from './match/entities/match-message.entity';
 import { Match } from './match/entities/match.entity';
 import { MatchMessage } from './match/entities/match-message.entity';
 import { MatchSubmission } from './match/entities/match-submission.entity';
