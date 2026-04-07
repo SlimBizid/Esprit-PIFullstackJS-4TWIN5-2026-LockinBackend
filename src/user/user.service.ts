@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
@@ -31,13 +32,13 @@ export class UserService {
         (await this.findUsernameExists(updatedUser.username)) &&
         updatedUser.username != user.username
       ) {
-        console.log(this.findUsernameExists(updatedUser.username));
-        return 'This username is already taken!';
+        throw new BadRequestException('This username is already taken');
       }
     }
     if (await bcrypt.compare(updatedUser.password, user.password)) {
       const newpass = await bcrypt.hash(updatedUser.password, 10);
       updatedUser.password = newpass;
+      console.log(updatedUser);
       // i tried repo.update(user.id,updatedUser) and it didnt work, some issue with querybuilder inside idk? gotta do this stupid implementation instead
       await this.userRepository.update(user.id, {
         username: updatedUser.username,
@@ -47,7 +48,7 @@ export class UserService {
       });
       return 'User updated';
     } else {
-      return 'Invalid password';
+      throw new BadRequestException('Invalid password');
     }
   }
   async findById(id: string): Promise<User | null> {
