@@ -524,10 +524,19 @@ export class ChallengeService {
             /\b(?:const|let|var)\s+\w+\s*=\s*\((.*?)\)\s*=>/s,
             'function solution($1)',
           );
+        const signatureMatch = normalized.match(/function\s+solution\s*\(([^)]*)\)/s);
 
-        return normalized.includes('solution')
-          ? normalized
-          : this.getFallbackStarterCode(language);
+        if (!signatureMatch) {
+          return this.getFallbackStarterCode(language);
+        }
+
+        const params = signatureMatch[1]?.trim() ?? '...args';
+        return [
+          `function solution(${params || '...args'}) {`,
+          '  // Implement your answer here.',
+          '  return null',
+          '}',
+        ].join('\n');
       }
       case 'typescript': {
         const normalized = trimmed
@@ -540,45 +549,53 @@ export class ChallengeService {
             /\b(?:const|let|var)\s+\w+\s*=\s*\((.*?)\)\s*:\s*([^{=]+)=>/s,
             'function solution($1): $2',
           );
+        const signatureMatch = normalized.match(
+          /function\s+solution\s*\(([^)]*)\)\s*(?::\s*([^{\n]+))?/s,
+        );
 
-        return normalized.includes('solution')
-          ? normalized
-          : this.getFallbackStarterCode(language);
+        if (!signatureMatch) {
+          return this.getFallbackStarterCode(language);
+        }
+
+        const params = signatureMatch[1]?.trim() ?? '...args: unknown[]';
+        const returnType = signatureMatch[2]?.trim();
+
+        return [
+          `function solution(${params || '...args: unknown[]'})${
+            returnType ? `: ${returnType}` : ': unknown'
+          } {`,
+          '  // Implement your answer here.',
+          '  return null',
+          '}',
+        ].join('\n');
       }
       case 'python': {
         const normalized = trimmed.replace(
           /\bdef\s+(?!solution\b)\w+\s*\(/,
           'def solution(',
         );
+        const signatureMatch = normalized.match(/def\s+solution\s*\(([^)]*)\)\s*:/);
 
-        return normalized.includes('def solution')
-          ? normalized
-          : this.getFallbackStarterCode(language);
+        if (!signatureMatch) {
+          return this.getFallbackStarterCode(language);
+        }
+
+        const params = signatureMatch[1]?.trim() ?? '*args';
+
+        return [
+          `def solution(${params || '*args'}):`,
+          '    # Implement your answer here.',
+          '    return None',
+        ].join('\n');
       }
       case 'java': {
-        const normalized = trimmed.replace(
-          /\bpublic\s+Object\s+(?!solution\b)\w+\s*\(/,
-          'public Object solution(',
-        );
-
-        return normalized.includes('class Solution') &&
-          normalized.includes('solution(')
-          ? normalized
-          : this.getFallbackStarterCode(language);
+        return this.getFallbackStarterCode(language);
       }
       case 'cpp': {
-        const normalized = trimmed.replace(
-          /\bJsonValue\s+(?!solution\b)\w+\s*\(/,
-          'JsonValue solution(',
-        );
-
-        return normalized.includes('class Solution') &&
-          normalized.includes('solution(')
-          ? normalized
-          : this.getFallbackStarterCode(language);
+        return this.getFallbackStarterCode(language);
       }
       default:
-        return trimmed;
+        return this.getFallbackStarterCode(language);
     }
   }
 
