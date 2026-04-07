@@ -6,11 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChallengeService } from 'src/challenge/challenge.service';
-import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
-import { evaluateQuizAnswers } from 'src/challenge/utils/evaluate-quiz.util';
-import { CodeExecutionService } from 'src/code-execution/code-execution.service';
-import { User } from 'src/user/entities/user.entity';
+import { ChallengeService } from '../challenge/challenge.service';
+import { ChallengeType } from '../challenge/enums/challenge-type.enums';
+import { evaluateQuizAnswers } from '../challenge/utils/evaluate-quiz.util';
+import { CodeExecutionService } from '../code-execution/code-execution.service';
+import { User } from '../user/entities/user.entity';
 import { Brackets, Repository } from 'typeorm';
 
 import { CreateMatchDto } from './dto/create-match.dto';
@@ -367,7 +367,9 @@ export class MatchService {
         | 'cpp',
       sourceCode: dto.sourceCode,
     });
-    const passedCount = execution.results.filter((result) => result.passed).length;
+    const passedCount = execution.results.filter(
+      (result) => result.passed,
+    ).length;
     const totalCount = execution.results.length;
 
     return {
@@ -395,7 +397,9 @@ export class MatchService {
     }
 
     if (!answers || Object.keys(answers).length === 0) {
-      throw new BadRequestException('Select at least one answer before submitting.');
+      throw new BadRequestException(
+        'Select at least one answer before submitting.',
+      );
     }
 
     return evaluateQuizAnswers(questions, answers);
