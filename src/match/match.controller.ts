@@ -24,10 +24,7 @@ export class MatchController {
   constructor(private readonly matchService: MatchService) {}
 
   @Post('queue')
-  createMatch(
-    @Body() dto: CreateMatchDto,
-    @Request() req: { user: User },
-  ) {
+  createMatch(@Body() dto: CreateMatchDto, @Request() req: { user: User }) {
     return this.matchService.createMatch(dto, req.user);
   }
 
