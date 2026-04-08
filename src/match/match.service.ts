@@ -10,6 +10,7 @@ import { ChallengeService } from '../challenge/challenge.service';
 import { ChallengeType } from '../challenge/enums/challenge-type.enums';
 import { evaluateQuizAnswers } from '../challenge/utils/evaluate-quiz.util';
 import { CodeExecutionService } from '../code-execution/code-execution.service';
+import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { User } from '../user/entities/user.entity';
 import { Brackets, Repository } from 'typeorm';
 
@@ -35,6 +36,7 @@ export class MatchService {
     private readonly submissionRepository: Repository<MatchSubmission>,
     private readonly challengeService: ChallengeService,
     private readonly codeExecutionService: CodeExecutionService,
+    private readonly leaderboardService: LeaderboardService,
   ) {}
 
   async createMatch(dto: CreateMatchDto, user: User) {
@@ -269,6 +271,12 @@ export class MatchService {
       match.winnerId = user.id;
       match.endedAt = new Date();
       await this.matchRepository.save(match);
+      await this.leaderboardService.awardChallenge({
+        userId: user.id,
+        challengeId: match.challengeId,
+        difficulty: match.challenge.difficulty,
+        type: match.challenge.type,
+      });
     }
 
     return {

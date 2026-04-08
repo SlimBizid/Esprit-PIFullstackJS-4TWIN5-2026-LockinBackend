@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ChallengeService } from 'src/challenge/challenge.service';
 import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
 import { CodeExecutionService } from 'src/code-execution/code-execution.service';
+import { LeaderboardService } from 'src/leaderboard/leaderboard.service';
 import { MatchVerdict } from 'src/match/enums/match-verdict.enum';
 import { MatchVisibility } from 'src/match/enums/match-visibility.enum';
 import { User } from 'src/user/entities/user.entity';
@@ -38,6 +39,7 @@ export class ImposterService {
     private readonly submissionRepository: Repository<ImposterSubmission>,
     private readonly challengeService: ChallengeService,
     private readonly codeExecutionService: CodeExecutionService,
+    private readonly leaderboardService: LeaderboardService,
   ) {}
 
   async createMatch(dto: CreateImposterMatchDto, user: User) {
@@ -377,6 +379,31 @@ export class ImposterService {
     match.endedAt = new Date();
 
     await this.matchRepository.save(match);
+
+    if (match.winningSide === ImposterWinningSide.CODERS) {
+      await Promise.all(
+        participants
+          .filter((participant) => participant.role === ImposterRole.CODER)
+          .map((participant) =>
+            this.leaderboardService.awardChallenge({
+              userId: participant.userId,
+              challengeId: match.challengeId,
+              difficulty: match.challenge.difficulty,
+              type: match.challenge.type,
+            }),
+          ),
+      );
+      return;
+    }
+
+    if (match.imposterId) {
+      await this.leaderboardService.awardChallenge({
+        userId: match.imposterId,
+        challengeId: match.challengeId,
+        difficulty: match.challenge.difficulty,
+        type: match.challenge.type,
+      });
+    }
   }
 
   private async findMatchById(matchId: string) {

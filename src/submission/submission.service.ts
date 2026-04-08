@@ -59,6 +59,15 @@ export class SubmissionService {
 
     const savedSubmission = await this.submissionRepository.save(submission);
 
+    if (evaluation.verdict === MatchVerdict.ACCEPTED) {
+      await this.leaderboardService.awardChallenge({
+        userId: user.id,
+        challengeId: challenge.id,
+        difficulty: challenge.difficulty,
+        type: challenge.type,
+      });
+    }
+
     return this.serializeSubmission({
       ...savedSubmission,
       challenge,

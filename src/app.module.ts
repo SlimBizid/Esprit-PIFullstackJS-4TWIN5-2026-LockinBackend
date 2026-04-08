@@ -17,6 +17,7 @@ import { BlacklistedToken } from './auth/token-blacklist/token-blacklist.entity'
 import { ScheduleModule } from '@nestjs/schedule';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { LeaderboardEntry } from './leaderboard/entities/leaderboard.entity';
+import { UserChallengeReward } from './leaderboard/entities/user-challenge-reward.entity';
 import { CodeExecutionController } from './code-execution/code-execution.controller';
 import { CodeExecutionService } from './code-execution/code-execution.service';
 import { Match } from './match/entities/match.entity';
@@ -47,11 +48,14 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT ?? '5432', 10),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+      url: process.env.DATABASE_URL || undefined,
+      host: process.env.DATABASE_URL ? undefined : process.env.DB_HOST,
+      port: process.env.DATABASE_URL
+        ? undefined
+        : parseInt(process.env.DB_PORT ?? '5432', 10),
+      username: process.env.DATABASE_URL ? undefined : process.env.DB_USERNAME,
+      password: process.env.DATABASE_URL ? undefined : process.env.DB_PASSWORD,
+      database: process.env.DATABASE_URL ? undefined : process.env.DB_NAME,
       entities: [
         User,
         Cosmetic,
@@ -71,8 +75,14 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
         ChallengeReviewReport,
         ChallengeReviewCommentReport,
         LeaderboardEntry,
+        UserChallengeReward,
       ],
-      ssl: process.env.ENV == 'prod',
+      ssl:
+        process.env.ENV == 'prod'
+          ? {
+              rejectUnauthorized: false,
+            }
+          : false,
       synchronize: true,
     }),
     TypeOrmModule.forFeature([

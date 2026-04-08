@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LeaderboardEntry } from './entities/leaderboard.entity';
+import { UserChallengeReward } from './entities/user-challenge-reward.entity';
 import { User } from '../user/entities/user.entity';
 import { CreateLeaderboardEntryDto } from './dto/create-leaderboard-entry.dto';
 import { AwardChallengeDto } from './dto/award-challenge.dto';
@@ -49,6 +50,8 @@ export class LeaderboardService {
   constructor(
     @InjectRepository(LeaderboardEntry)
     private readonly leaderboardRepo: Repository<LeaderboardEntry>,
+    @InjectRepository(UserChallengeReward)
+    private readonly rewardRepo: Repository<UserChallengeReward>,
 
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -76,6 +79,17 @@ export class LeaderboardService {
   }
 
   async awardChallenge(dto: AwardChallengeDto): Promise<LeaderboardEntry> {
+    const existingReward = await this.rewardRepo.findOne({
+      where: {
+        userId: dto.userId,
+        challengeId: dto.challengeId,
+      },
+    });
+
+    if (existingReward) {
+      return this.findEntryByUser(dto.userId);
+    }
+
     const [entry, user] = await Promise.all([
       this.leaderboardRepo.findOne({ where: { userId: dto.userId } }),
       this.userRepo.findOne({ where: { id: dto.userId } }),
@@ -96,6 +110,12 @@ export class LeaderboardService {
     user.xp += xp;
 
     await Promise.all([
+      this.rewardRepo.save(
+        this.rewardRepo.create({
+          userId: dto.userId,
+          challengeId: dto.challengeId,
+        }),
+      ),
       this.leaderboardRepo.save(entry),
       this.userRepo.save(user),
     ]);
