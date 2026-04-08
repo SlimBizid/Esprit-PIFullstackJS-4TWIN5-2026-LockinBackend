@@ -17,6 +17,7 @@ export class CosmeticService {
     if (dto.achievementId) {
       // TODO: Check if achievement with this UUID exists before creating cosmetic.
       // Throw an error if it doesn't.
+      //still need to do this
     }
 
     const cosmetic = this.cosmeticRepository.create({
