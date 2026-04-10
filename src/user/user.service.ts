@@ -149,6 +149,69 @@ export class UserService {
     };
   }
 
+  // Admin-specific list: includes soft-deleted/blocked users with full details
+  async findAllForAdmin(
+    page: number = 1,
+    limit: number = 10,
+    type?: UserType,
+    search?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (type) where.type = type;
+    if (search) where.username = ILike(`%${search}%`);
+
+    const [data, total] = await this.userRepository.findAndCount({
+      where,
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+      withDeleted: true,
+    });
+
+    return {
+      data,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit),
+    };
+  }
+
+  // Player-specific list: only active users with limited fields
+  async findAllForPlayer(
+    page: number = 1,
+    limit: number = 10,
+    type?: UserType,
+    search?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (type) where.type = type;
+    if (search) where.username = ILike(`%${search}%`);
+
+    const [users, total] = await this.userRepository.findAndCount({
+      where,
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+
+    const data = users.map((user) => ({
+      username: user.username,
+      githubHandle: user.githubHandle,
+      type: user.type,
+    }));
+
+    return {
+      data,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit),
+    };
+  }
+
   async updateUserRole(id: string, updated_role: UserType) {
     const user = await this.userRepository.findOne({ where: { id } });
 
