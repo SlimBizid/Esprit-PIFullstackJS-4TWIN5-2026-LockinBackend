@@ -40,6 +40,9 @@ import { ChallengeReviewComment } from './review/entities/challenge-review-comme
 import { ChallengeReviewUpvote } from './review/entities/challenge-review-upvote.entity';
 import { ChallengeReviewReport } from './review/entities/challenge-review-report.entity';
 import { ChallengeReviewCommentReport } from './review/entities/challenge-review-comment-report.entity';
+import { ChallengeRecommendation } from './recommendation/entities/challenge-recommendation.entity';
+import { RecommendationController } from './recommendation/recommendation.controller';
+import { RecommendationService } from './recommendation/recommendation.service';
 
 @Module({
   imports: [
@@ -74,6 +77,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
         ChallengeReviewUpvote,
         ChallengeReviewReport,
         ChallengeReviewCommentReport,
+        ChallengeRecommendation,
         LeaderboardEntry,
         UserChallengeReward,
       ],
@@ -99,6 +103,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
       ChallengeReviewUpvote,
       ChallengeReviewReport,
       ChallengeReviewCommentReport,
+      ChallengeRecommendation,
     ]),
     UserModule,
     AuthModule,
@@ -115,6 +120,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
     ImposterController,
     SubmissionController,
     ReviewController,
+    RecommendationController,
   ],
   providers: [
     AppService,
@@ -124,6 +130,7 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
     ImposterService,
     SubmissionService,
     ReviewService,
+    RecommendationService,
   ],
 })
 export class AppModule {}
