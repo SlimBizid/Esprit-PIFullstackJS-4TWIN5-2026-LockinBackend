@@ -73,20 +73,11 @@ export class UserController {
     @Query('type') type?: UserType,
     @Query('search') search?: string,
   ) {
-    const isAdmin = req.user.type === UserType.ADMIN;
-
-    if (isAdmin) {
-      return this.userService.findAllForAdmin(
-        Number(page),
-        Number(limit),
-        type,
-        search,
-      );
-    }
-
-    return this.userService.findAllForPlayer(
+    const requesterRole: UserType = req.user.type;
+    return this.userService.findAll(
       Number(page),
       Number(limit),
+      requesterRole,
       type,
       search,
     );

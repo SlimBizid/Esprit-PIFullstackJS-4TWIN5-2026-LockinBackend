@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { UserType } from './enums/user-type.enum';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PlayerUserDto } from './dto/player-user.dto';
 
 @Injectable()
 export class UserService {
@@ -122,87 +123,26 @@ export class UserService {
 
     if (search) where.username = ILike(`%${search}%`);
 
+    const isAdmin = role === UserType.ADMIN;
+
     const [users, total] = await this.userRepository.findAndCount({
       where,
       skip,
       take: limit,
       order: { createdAt: 'DESC' },
+      withDeleted: isAdmin,
     });
 
-    const data = users.map((user) => {
-      if (role === 'admin') {
+    const data: any[] = users.map((user) => {
+      if (isAdmin) {
         return user;
       }
       return {
-        id: user.id,
         username: user.username,
         githubHandle: user.githubHandle,
         type: user.type,
-      };
+      } as PlayerUserDto;
     });
-
-    return {
-      data,
-      total,
-      page,
-      lastPage: Math.ceil(total / limit),
-    };
-  }
-
-  // Admin-specific list: includes soft-deleted/blocked users with full details
-  async findAllForAdmin(
-    page: number = 1,
-    limit: number = 10,
-    type?: UserType,
-    search?: string,
-  ) {
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
-    if (type) where.type = type;
-    if (search) where.username = ILike(`%${search}%`);
-
-    const [data, total] = await this.userRepository.findAndCount({
-      where,
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
-      withDeleted: true,
-    });
-
-    return {
-      data,
-      total,
-      page,
-      lastPage: Math.ceil(total / limit),
-    };
-  }
-
-  // Player-specific list: only active users with limited fields
-  async findAllForPlayer(
-    page: number = 1,
-    limit: number = 10,
-    type?: UserType,
-    search?: string,
-  ) {
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
-    if (type) where.type = type;
-    if (search) where.username = ILike(`%${search}%`);
-
-    const [users, total] = await this.userRepository.findAndCount({
-      where,
-      skip,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
-
-    const data = users.map((user) => ({
-      username: user.username,
-      githubHandle: user.githubHandle,
-      type: user.type,
-    }));
 
     return {
       data,
