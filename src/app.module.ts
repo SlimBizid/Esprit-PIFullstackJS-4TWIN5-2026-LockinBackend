@@ -43,6 +43,9 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
 import { ChallengeRecommendation } from './recommendation/entities/challenge-recommendation.entity';
 import { RecommendationController } from './recommendation/recommendation.controller';
 import { RecommendationService } from './recommendation/recommendation.service';
+import { PlagiarismFlag } from './plagiarism/entities/plagiarism-flag.entity';
+import { PlagiarismController } from './plagiarism/plagiarism.controller';
+import { PlagiarismService } from './plagiarism/plagiarism.service';
 
 @Module({
   imports: [
@@ -78,6 +81,7 @@ import { RecommendationService } from './recommendation/recommendation.service';
         ChallengeReviewReport,
         ChallengeReviewCommentReport,
         ChallengeRecommendation,
+        PlagiarismFlag,
         LeaderboardEntry,
         UserChallengeReward,
       ],
@@ -104,6 +108,7 @@ import { RecommendationService } from './recommendation/recommendation.service';
       ChallengeReviewReport,
       ChallengeReviewCommentReport,
       ChallengeRecommendation,
+      PlagiarismFlag,
     ]),
     UserModule,
     AuthModule,
@@ -121,6 +126,7 @@ import { RecommendationService } from './recommendation/recommendation.service';
     SubmissionController,
     ReviewController,
     RecommendationController,
+    PlagiarismController,
   ],
   providers: [
     AppService,
@@ -131,6 +137,7 @@ import { RecommendationService } from './recommendation/recommendation.service';
     SubmissionService,
     ReviewService,
     RecommendationService,
+    PlagiarismService,
   ],
 })
 export class AppModule {}
