@@ -17,6 +17,11 @@ import { ChallengeDifficulty } from './enums/challenge-difficulty.enums';
 import { ChallengeTopic } from './enums/challenge-topic.enums';
 import { GeneratedChallengeDraftDto } from './dto/generated-challenge-draft.dto';
 
+type ScoredChallenge = {
+  challenge: Challenge;
+  score: number;
+};
+
 @Injectable()
 export class ChallengeService {
   private static readonly SUPPORTED_TOPICS = Object.values(ChallengeTopic);
@@ -33,6 +38,82 @@ export class ChallengeService {
     private challengeRepository: Repository<Challenge>,
   ) {}
 
+  async recommendTop3(user: any) {
+    const url = 'http://127.0.0.1:8000/predict';
+
+    const challenges = await this.challengeRepository.find({
+      take: 30,
+      order: { createdAt: 'DESC' },
+    });
+    console.log(challenges.length);
+
+    const scoredChallenges: ScoredChallenge[] = [];
+    for (const challenge of challenges) {
+      const payload = this.buildRecommendationPayload(user, challenge);
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+
+        console.log(challenge.title);
+        console.log(result);
+        scoredChallenges.push({
+          challenge,
+          score: result.probability ?? 0,
+        });
+      } catch (err) {
+        console.log('error 0');
+        scoredChallenges.push({
+          challenge,
+          score: 0,
+        });
+      }
+    }
+    scoredChallenges.sort((a, b) => b.score - a.score);
+    console.log(scoredChallenges);
+    const top3 = scoredChallenges.slice(0, 3);
+    return {
+      recommendations: top3,
+    };
+  }
+  private buildRecommendationPayload(user: any, challenge: any) {
+    return {
+      user_xp: user.xp ?? 0,
+      user_total_attempts_before: user.totalAttempts ?? 0,
+      user_total_solves_before: user.totalSolves ?? 0,
+      user_solve_rate_before: user.solveRate ?? 0,
+      user_avg_pass_ratio_before: user.avgPassRatio ?? 0,
+      user_recent_attempts_7d: user.recentAttempts7d ?? 0,
+      user_recent_solves_7d: user.recentSolves7d ?? 0,
+      user_recent_attempts_30d: user.recentAttempts30d ?? 0,
+
+      user_has_solved_easy_before: user.hasSolvedEasy ? 1 : 0,
+      user_has_solved_medium_before: user.hasSolvedMedium ? 1 : 0,
+      user_has_solved_hard_before: user.hasSolvedHard ? 1 : 0,
+
+      challenge_acceptance_rate: challenge.acceptanceRate ?? 0,
+      challenge_topic_count: challenge.topics?.length ?? 0,
+      challenge_examples_count: challenge.examples?.length ?? 0,
+      challenge_constraints_count: challenge.constraints?.length ?? 0,
+      challenge_age_days: 20,
+
+      user_has_seen_topic_before: 1,
+      user_has_solved_topic_before: 0,
+
+      difficulty_gap_score: 0.5,
+
+      user_preferred_language: user.preferredLanguage ?? 'python',
+      challenge_difficulty: challenge.difficulty,
+      challenge_type: challenge.type,
+    };
+  }
   async findAll(queryDto: ChallengeQueryDto, role: UserType) {
     const {
       page = 1,

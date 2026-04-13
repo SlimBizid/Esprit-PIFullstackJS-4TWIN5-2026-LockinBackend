@@ -47,7 +47,15 @@ export class ChallengeController {
 
     return result;
   }
+  @Post('recommend')
+  @UseGuards(JwtAuthGuard)
+  async recommendChallenge(
+    @Request() req: Request & { user: any },
+  ): Promise<any> {
+    const user = req.user;
 
+    return this.challengeService.recommendTop3(user);
+  }
   @Get('daily/current')
   async getDailyChallenge(
     @Request() req: Request & { user: { type: UserType } },
