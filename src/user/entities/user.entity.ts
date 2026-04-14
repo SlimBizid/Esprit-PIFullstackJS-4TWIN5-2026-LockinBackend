@@ -21,7 +21,7 @@ export class User {
   @Column({ unique: true })
   username: string;
 
-  @Column() // removed exculde to read pwds so we can compare hashes, exposing hashed pwds shouldn't be an issue no? anyways users should always be sent back in a DTO
+  @Column({ nullable: true }) // removed exculde to read pwds so we can compare hashes, exposing hashed pwds shouldn't be an issue no? anyways users should always be sent back in a DTO
   @Exclude()
   password: string;
 
