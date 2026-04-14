@@ -8,14 +8,12 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     super({
       clientID: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      callbackURL: 'http://localhost:3000/auth/github/callback',
+      callbackURL: process.env.FRONTEND_URL!,
       scope: ['user:email'],
     });
   }
 
   validate(accessToken: string, refreshToken: string, profile: any) {
-    console.log('🔥 STRATEGY PROFILE:', profile);
-
     return {
       githubHandle: profile.username,
       username: profile.username,
