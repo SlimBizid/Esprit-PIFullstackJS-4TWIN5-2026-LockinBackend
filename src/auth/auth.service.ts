@@ -93,7 +93,8 @@ export class AuthService {
   }
   async findOrCreateGithubUser(profile: any): Promise<User> {
     const user = await this.userService.findByEmail(profile.email);
-
+    console.log(profile);
+    console.log(user);
     if (!user) {
       let usernameExists = await this.userService.findUsernameExists(
         profile.username,

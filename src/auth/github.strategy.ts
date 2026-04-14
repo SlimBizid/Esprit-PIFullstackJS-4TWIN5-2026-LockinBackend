@@ -13,7 +13,7 @@ export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
     });
   }
 
-  validate(profile: any) {
+  validate(access_token: any, refresh_token: any, profile: any) {
     return {
       githubHandle: profile.username,
       username: profile.username,
