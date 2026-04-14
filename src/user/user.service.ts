@@ -38,7 +38,6 @@ export class UserService {
     if (await bcrypt.compare(updatedUser.password, user.password)) {
       const newpass = await bcrypt.hash(updatedUser.password, 10);
       updatedUser.password = newpass;
-      console.log(updatedUser);
       // i tried repo.update(user.id,updatedUser) and it didnt work, some issue with querybuilder inside idk? gotta do this stupid implementation instead
       await this.userRepository.update(user.id, {
         username: updatedUser.username,
