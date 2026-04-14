@@ -30,10 +30,13 @@ export class AuthService {
   ) {}
 
   async validateUser(username: string, pass: string): Promise<User | null> {
+    if (pass == null) return null;
     const user = await this.userService.findByUsername(username);
     if (!user) return null;
-
-    const isMatch = await bcrypt.compare(pass, user.password);
+    let isMatch = false;
+    if (user.password != null) {
+      isMatch = await bcrypt.compare(pass, user.password);
+    }
     if (!isMatch) return null;
     return user;
   }
@@ -87,6 +90,34 @@ export class AuthService {
     if (newUser) {
       await this.leaderboardService.createEntry({ userId: newUser.id });
     }
+  }
+  async findOrCreateGithubUser(profile: any): Promise<User> {
+    const user = await this.userService.findByEmail(profile.email);
+
+    if (!user) {
+      let usernameExists = await this.userService.findUsernameExists(
+        profile.username,
+      );
+      while (usernameExists) {
+        profile.username = `${profile.username}${Math.floor(100 + Math.random() * 900)}`;
+        usernameExists = await this.userService.findUsernameExists(
+          profile.username,
+        );
+      }
+      const user = await this.userService.CreateUser(
+        profile.username,
+        profile.email,
+        undefined,
+        profile.githubHandle,
+      );
+      if (!user) {
+        throw new Error('User creation failed');
+      }
+      await this.leaderboardService.createEntry({ userId: user.id });
+      return user;
+    }
+
+    return user;
   }
   async awardLoginXp(userId: string): Promise<void> {
     await this.leaderboardService.awardLoginXp(userId);

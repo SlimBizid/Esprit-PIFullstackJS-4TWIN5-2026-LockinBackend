@@ -89,7 +89,7 @@ export class UserService {
   async CreateUser(
     username: string,
     email: string,
-    plaintextpassword: string,
+    plaintextpassword?: string,
     githubHandle?: string,
   ) {
     if (await this.findUsernameExists(username)) {
@@ -98,8 +98,11 @@ export class UserService {
     if (await this.findEmailExists(email)) {
       throw new HttpException('Email already exists', HttpStatus.CONFLICT);
     }
-    const password = await bcrypt.hash(plaintextpassword, 10);
-    await this.userRepository.save({
+    let password: string | undefined = undefined;
+    if (plaintextpassword) {
+      password = await bcrypt.hash(plaintextpassword, 10);
+    }
+    return await this.userRepository.save({
       username,
       email,
       password,

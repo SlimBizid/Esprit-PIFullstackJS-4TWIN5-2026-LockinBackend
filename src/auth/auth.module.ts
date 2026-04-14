@@ -14,6 +14,7 @@ import { BlacklistedToken } from './token-blacklist/token-blacklist.entity';
 import { TokenBlacklistService } from './token-blacklist/token-blacklist.service';
 import { RefreshTokenStrategy } from './refresh-token.strategy';
 import { LeaderboardModule } from '../leaderboard/leaderboard.module';
+import { GithubStrategy } from './github.strategy';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { LeaderboardModule } from '../leaderboard/leaderboard.module';
     JwtStrategy,
     TokenBlacklistService,
     RefreshTokenStrategy,
+    GithubStrategy,
   ],
   exports: [AuthService],
   controllers: [AuthController],
