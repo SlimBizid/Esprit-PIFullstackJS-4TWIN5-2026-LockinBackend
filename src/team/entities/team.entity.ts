@@ -7,10 +7,10 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
-  ManyToMany,
-  JoinTable,
+  OneToMany,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { PendingInvitation } from './pending-invitation.entity';
 
 @Entity('teams')
 export class Team {
@@ -27,22 +27,13 @@ export class Team {
   @DeleteDateColumn()
   teamDeletionDate: Date;
 
-  // ✅ FIXED RELATION
-  @ManyToMany(() => User, (user) => user.teams)
-  @JoinTable()
+  @OneToMany(() => User, (user: User) => user.team)
   users: User[];
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'leaderId' })
   leaderId: User;
 
-  @Column({ type: 'json', default: [] })
-  pendingInvitations: string[];
-
-  @Column({
-    type: 'enum',
-    enum: ['PENDING', 'ACTIVE'],
-    default: 'PENDING',
-  })
-  status: 'PENDING' | 'ACTIVE';
+  @OneToMany(() => PendingInvitation, (invitation) => invitation.team)
+  pendingInvitations: PendingInvitation[];
 }

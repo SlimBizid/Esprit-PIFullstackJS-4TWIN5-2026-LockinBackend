@@ -3,7 +3,9 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  ManyToMany,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -12,38 +14,43 @@ import { Exclude } from 'class-transformer';
 
 import { UserType } from '../enums/user-type.enum';
 import { Team } from 'src/team/entities/team.entity';
+import { PendingInvitation } from 'src/team/entities/pending-invitation.entity';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  username: string;
+  username!: string;
 
   @Column() // removed exculde to read pwds so we can compare hashes, exposing hashed pwds shouldn't be an issue no? anyways users should always be sent back in a DTO
   @Exclude()
-  password: string;
+  password!: string;
 
   @Column({ nullable: true })
-  githubHandle: string;
+  githubHandle!: string;
 
   @Column({ unique: true })
-  email: string;
+  email!: string;
 
   @Column({ type: 'enum', enum: UserType, default: UserType.PLAYER })
-  type: UserType;
+  type!: UserType;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Exclude()
   @DeleteDateColumn()
-  deletedAt: Date;
+  deletedAt!: Date;
 
-  @ManyToMany(() => Team, (team) => team.users)
-  teams: Team[];
+  @ManyToOne(() => Team, (team) => team.users, { nullable: true })
+  @JoinColumn({ name: 'teamId' })
+  team!: Team | null;
+
+  @OneToMany(() => PendingInvitation, (invitation) => invitation.user)
+  pendingInvitations!: PendingInvitation[];
 }

@@ -1,4 +1,4 @@
-import { IsOptional, IsNotEmpty, IsIn } from 'class-validator';
+import { IsOptional, IsNotEmpty, IsUUID } from 'class-validator';
 
 export class UpdateTeamDto {
   @IsOptional()
@@ -6,6 +6,6 @@ export class UpdateTeamDto {
   name?: string;
 
   @IsOptional()
-  @IsIn(['PENDING', 'ACTIVE'])
-  status?: 'PENDING' | 'ACTIVE';
+  @IsUUID()
+  leaderId?: string;
 }
