@@ -48,12 +48,11 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const githubUser = req.user;
-    console.log('USER FROM STRATEGY:', req.user);
     const user = await this.authService.findOrCreateGithubUser(githubUser);
 
     this.authService.setTokenCookies(res, user);
 
-    return this.authService.getUserDTO(user);
+    return res.redirect(process.env.FRONTEND_URL || '');
   }
 
   @Post('forgot-password')
