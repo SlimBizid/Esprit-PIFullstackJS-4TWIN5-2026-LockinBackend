@@ -114,9 +114,10 @@ export class AuthService {
         throw new Error('User creation failed');
       }
       await this.leaderboardService.createEntry({ userId: user.id });
+      await this.awardLoginXp(user.id);
       return user;
     }
-
+    await this.awardLoginXp(user.id);
     return user;
   }
   async awardLoginXp(userId: string): Promise<void> {
