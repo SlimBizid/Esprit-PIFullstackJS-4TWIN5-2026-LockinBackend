@@ -14,7 +14,7 @@ import { User } from '../../user/entities/user.entity';
 @Unique(['team', 'user'])
 export class PendingInvitation {
   @PrimaryGeneratedColumn()
-  id: number;
+  : number;
 
   @Index()
   @ManyToOne(() => Team, (team) => team.pendingInvitations, {

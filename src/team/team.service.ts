@@ -79,6 +79,16 @@ export class TeamService {
   // DELETE TEAM
   async deleteTeam(id: number): Promise<void> {
     const team = await this.findOne(id);
+
+    // Detach all members first to avoid foreign key constraint issues
+    // on users.teamId when deleting a team that still has members.
+    if (team.users?.length) {
+      for (const user of team.users) {
+        user.team = null;
+      }
+      await this.userRepository.save(team.users);
+    }
+
     await this.teamRepository.remove(team);
   }
 
