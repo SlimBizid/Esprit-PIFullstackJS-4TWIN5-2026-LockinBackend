@@ -13,6 +13,7 @@ import { User } from '../user/entities/user.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Response, response } from 'express';
+import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { UserDTO } from './dto/user.dto';
 import { TokenBlacklistService } from './token-blacklist/token-blacklist.service';
 
@@ -22,6 +23,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private leaderboardService: LeaderboardService,
     private tokenBlacklistService: TokenBlacklistService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -80,7 +82,14 @@ export class AuthService {
     password: string,
     githubHandle?: string,
   ): Promise<void> {
-    return this.userService.CreateUser(username, email, password, githubHandle);
+    await this.userService.CreateUser(username, email, password, githubHandle);
+    const newUser = await this.userService.findByEmail(email);
+    if (newUser) {
+      await this.leaderboardService.createEntry({ userId: newUser.id });
+    }
+  }
+  async awardLoginXp(userId: string): Promise<void> {
+    await this.leaderboardService.awardLoginXp(userId);
   }
 
   async forgotPassword(

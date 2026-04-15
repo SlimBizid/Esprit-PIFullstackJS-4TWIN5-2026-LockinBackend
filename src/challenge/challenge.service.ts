@@ -11,6 +11,7 @@ import { UserType } from 'src/user/enums/user-type.enum';
 import { ChallengeQueryDto } from './dto/get-challenges-query.dto';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
+import { ChallengeType } from './enums/challenge-type.enums';
 
 @Injectable()
 export class ChallengeService {
@@ -78,6 +79,43 @@ export class ChallengeService {
     }
 
     return challenge;
+  }
+
+  async findDailyChallenge(role: UserType = UserType.PLAYER) {
+    const availableChallenges = await this.challengeRepository.find({
+      select: {
+        id: true,
+      },
+      where: {
+        type: ChallengeType.SOLO,
+      },
+      order: {
+        id: 'ASC',
+      },
+    });
+
+    if (availableChallenges.length === 0) {
+      throw new NotFoundException(
+        'No solo challenges are available for today.',
+      );
+    }
+
+    const now = new Date();
+    const dayNumber = Math.floor(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) /
+        86_400_000,
+    );
+    const challengeId =
+      availableChallenges[dayNumber % availableChallenges.length]?.id;
+
+    if (!challengeId) {
+      throw new NotFoundException('No daily challenge could be selected.');
+    }
+
+    return {
+      date: now.toISOString().slice(0, 10),
+      challenge: await this.findOne(challengeId, role),
+    };
   }
 
   async findByTitle(title: string): Promise<Challenge | null> {
