@@ -11,6 +11,7 @@ import { User } from '../user/entities/user.entity';
 import { ChallengeDifficulty } from '../challenge/enums/challenge-difficulty.enums';
 import { ChallengeType } from '../challenge/enums/challenge-type.enums';
 import { LeaderboardScope } from './enums/leaderboard-scope.enum';
+import { Rank } from './enums/rank.enum';
 
 const mockEntry = (overrides = {}): LeaderboardEntry =>
   ({
@@ -262,8 +263,20 @@ describe('LeaderboardService', () => {
       const result = await service.getScoreLeaderboard();
 
       expect(result).toEqual<ScoreLeaderboardItem[]>([
-        { userId: 'user-uuid', totalScore: 220, challengeCompletions: 4 },
-        { userId: 'other-uuid', totalScore: 180, challengeCompletions: 3 },
+        {
+          userId: 'user-uuid',
+          totalScore: 220,
+          challengeCompletions: 4,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
+        {
+          userId: 'other-uuid',
+          totalScore: 180,
+          challengeCompletions: 3,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
       ]);
       expect(queryBuilderMock.where).toHaveBeenCalledWith(
         'reward.season = :season',
@@ -297,8 +310,20 @@ describe('LeaderboardService', () => {
       const result = await service.getScoreLeaderboard(LeaderboardScope.DAY);
 
       expect(result).toEqual<ScoreLeaderboardItem[]>([
-        { userId: 'user-uuid', totalScore: 120, challengeCompletions: 3 },
-        { userId: 'other-uuid', totalScore: 80, challengeCompletions: 2 },
+        {
+          userId: 'user-uuid',
+          totalScore: 120,
+          challengeCompletions: 3,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
+        {
+          userId: 'other-uuid',
+          totalScore: 80,
+          challengeCompletions: 2,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
       ]);
       expect(queryBuilderMock.where).toHaveBeenCalled();
     });
@@ -351,8 +376,13 @@ describe('LeaderboardService', () => {
         userId: 'user-uuid',
         totalScore: 100,
         challengeCompletions: 2,
+        rank: Rank.IRON,
+        rankProgress: expect.any(Number),
       });
       expect(result.scoreRank).toBe(2);
+      expect(result.rank).toBe(Rank.IRON);
+      expect(result.rankProgress).toBeGreaterThanOrEqual(0);
+      expect(result.rankProgress).toBeLessThanOrEqual(100);
       expect(result.xp).toBe(80);
       expect(result.xpRank).toBe(2);
       expect(queryBuilderMock.where).toHaveBeenCalledWith(

@@ -13,6 +13,8 @@ import { AwardChallengeDto } from './dto/award-challenge.dto';
 import { ChallengeDifficulty } from '../challenge/enums/challenge-difficulty.enums';
 import { ChallengeType } from '../challenge/enums/challenge-type.enums';
 import { LeaderboardScope } from './enums/leaderboard-scope.enum';
+import { Rank } from './enums/rank.enum';
+import { getRankFromScore, getRankProgress } from './constants/rank-thresholds';
 
 const BASE_SCORE: Record<ChallengeDifficulty, number> = {
   [ChallengeDifficulty.EASY]: 50,
@@ -50,6 +52,8 @@ export type ScoreLeaderboardItem = {
   userId: string;
   totalScore: number;
   challengeCompletions: number;
+  rank: Rank;
+  rankProgress: number;
 };
 
 // Score is a seasonal leaderboard metric. It is calculated from challenge rewards
@@ -202,6 +206,8 @@ export class LeaderboardService {
       userId: row.userId,
       totalScore: Number(row.totalScore),
       challengeCompletions: Number(row.challengeCompletions),
+      rank: getRankFromScore(Number(row.totalScore)),
+      rankProgress: getRankProgress(Number(row.totalScore)),
     }));
   }
 
@@ -238,6 +244,8 @@ export class LeaderboardService {
   async getUserStanding(userId: string): Promise<{
     scoreEntry: ScoreLeaderboardItem;
     scoreRank: number;
+    rank: Rank;
+    rankProgress: number;
     xpRank: number;
     xp: number;
   }> {
@@ -265,16 +273,43 @@ export class LeaderboardService {
       userId: row.userId,
       totalScore: Number(row.totalScore),
       challengeCompletions: Number(row.challengeCompletions),
+      rank: getRankFromScore(Number(row.totalScore)),
+      rankProgress: getRankProgress(Number(row.totalScore)),
     }));
 
     const scoreIndex = scoreRows.findIndex((row) => row.userId === userId);
     const scoreEntry: ScoreLeaderboardItem =
       scoreIndex >= 0
         ? scoreRows[scoreIndex]
-        : { userId, totalScore: 0, challengeCompletions: 0 };
+        : {
+            userId,
+            totalScore: 0,
+            challengeCompletions: 0,
+            rank: getRankFromScore(0),
+            rankProgress: getRankProgress(0),
+          };
     const scoreRank = scoreIndex >= 0 ? scoreIndex + 1 : scoreRows.length + 1;
+    const rank = scoreEntry.rank;
+    const rankProgress = scoreEntry.rankProgress;
     const xpRank = allByXp.findIndex((u) => u.id === userId) + 1;
 
-    return { scoreEntry, scoreRank, xpRank, xp: user.xp };
+    return { scoreEntry, scoreRank, rank, rankProgress, xpRank, xp: user.xp };
+  }
+
+  /**
+   * Get rank thresholds for all ranks
+   * Used by frontend to display rank progression bars
+   */
+  getRankThresholds(): Record<Rank, { min: number; max: number }> {
+    const { RANK_THRESHOLDS } = require('./constants/rank-thresholds');
+    return RANK_THRESHOLDS;
+  }
+
+  /**
+   * Get all available ranks ordered by tier
+   */
+  getAllRanks(): Rank[] {
+    const { getAllRanksOrdered } = require('./constants/rank-thresholds');
+    return getAllRanksOrdered();
   }
 }
