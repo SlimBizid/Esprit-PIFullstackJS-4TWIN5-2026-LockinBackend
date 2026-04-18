@@ -296,18 +296,13 @@ export class LeaderboardService {
     return { scoreEntry, scoreRank, rank, rankProgress, xpRank, xp: user.xp };
   }
 
-  /**
-   * Get rank thresholds for all ranks
-   * Used by frontend to display rank progression bars
-   */
+  
   getRankThresholds(): Record<Rank, { min: number; max: number }> {
     const { RANK_THRESHOLDS } = require('./constants/rank-thresholds');
     return RANK_THRESHOLDS;
   }
 
-  /**
-   * Get all available ranks ordered by tier
-   */
+  
   getAllRanks(): Rank[] {
     const { getAllRanksOrdered } = require('./constants/rank-thresholds');
     return getAllRanksOrdered();

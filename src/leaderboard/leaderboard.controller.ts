@@ -18,7 +18,7 @@ export class LeaderboardController {
 
   @Get('score')
   getScoreLeaderboard(
-    @Query('scope', new ParseEnumPipe(LeaderboardScope))
+    @Query('scope', new ParseEnumPipe(LeaderboardScope, { optional: true }))
     scope: LeaderboardScope = LeaderboardScope.SEASON,
   ) {
     return this.leaderboardService.getScoreLeaderboard(scope);
