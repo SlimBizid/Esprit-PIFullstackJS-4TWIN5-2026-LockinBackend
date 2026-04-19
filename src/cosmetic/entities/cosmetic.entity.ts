@@ -32,7 +32,6 @@ export class Cosmetic {
   })
   cosmeticRarity: CosmeticRarity;
 
-  @Column({ name: 'achievementId' })
   @ManyToOne(() => Achievement, (achievement) => achievement.Reward, {
     nullable: true,
   })
