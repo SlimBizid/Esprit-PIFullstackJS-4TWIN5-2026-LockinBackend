@@ -4,6 +4,7 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -12,6 +13,7 @@ import { Exclude } from 'class-transformer';
 
 import { UserType } from '../enums/user-type.enum';
 import { Team } from 'src/team/entities/team.entity';
+import { UserAchievement } from 'src/achievement/entities/userachievement.entity';
 
 @Entity('users')
 export class User {
@@ -49,4 +51,7 @@ export class User {
 
   @ManyToMany(() => Team, (team) => team.users)
   teams: Team[];
+
+  @OneToMany(() => UserAchievement, (userach) => userach.user)
+  userAchievements: UserAchievement[];
 }

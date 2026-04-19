@@ -10,12 +10,15 @@ import { UserType } from 'src/user/enums/user-type.enum';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Achievement } from './entities/achievement.entity';
 import { Repository } from 'typeorm';
+import { UserAchievement } from './entities/userachievement.entity';
 
 @Injectable()
 export class AchievementService {
   constructor(
     @InjectRepository(Achievement)
     private achievementRepository: Repository<Achievement>,
+    @InjectRepository(UserAchievement)
+    private userAchievementRepository: Repository<UserAchievement>,
   ) {}
   async create(user: User, createAchievementDto: CreateAchievementDto) {
     if (user.type != UserType.ADMIN) {
@@ -81,5 +84,12 @@ export class AchievementService {
     if (achievement) {
       return await this.achievementRepository.delete({ id: id });
     }
+  }
+
+  async awardAchievementToUser(user: User, achievement: Achievement) {
+    return await this.userAchievementRepository.save({
+      user,
+      achievement,
+    });
   }
 }
