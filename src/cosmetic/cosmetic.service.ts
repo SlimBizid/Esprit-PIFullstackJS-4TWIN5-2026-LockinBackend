@@ -5,30 +5,31 @@ import { Repository } from 'typeorm';
 import { Cosmetic } from './entities/cosmetic.entity';
 import { CreateCosmeticDto } from './dto/create-cosmetic.dto';
 import { UpdateCosmeticDto } from './dto/update-cosmetic.dto';
+import { AchievementService } from 'src/achievement/achievement.service';
+import { Achievement } from 'src/achievement/entities/achievement.entity';
 
 @Injectable()
 export class CosmeticService {
   constructor(
     @InjectRepository(Cosmetic)
     private readonly cosmeticRepository: Repository<Cosmetic>,
+    private readonly achievementService: AchievementService,
   ) {}
 
   async create(dto: CreateCosmeticDto): Promise<Cosmetic> {
+    let achievement: Achievement | undefined = undefined;
     if (dto.achievementId) {
-      // TODO: Check if achievement with this UUID exists before creating cosmetic.
-      // Throw an error if it doesn't.
-      //still need to do this
+      achievement = await this.achievementService.findOne(dto.achievementId);
     }
 
-    const cosmetic = this.cosmeticRepository.create({
+    return await this.cosmeticRepository.save({
       imageUrl: dto.imageUrl,
       cosmeticTitle: dto.cosmeticTitle,
       cosmeticDescription: dto.cosmeticDescription,
       cosmeticRarity: dto.cosmeticRarity,
-      achievementId: dto.achievementId ?? null,
+      achievement: achievement,
       cosmeticType: dto.cosmeticType,
     });
-    return this.cosmeticRepository.save(cosmetic);
   }
 
   async findAll(
