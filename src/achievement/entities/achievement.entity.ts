@@ -21,7 +21,7 @@ export class Achievement {
   }) /*should be nullable false will leave it nullable for now for dev purposes */
   imageUrl: string;
 
-  @OneToMany(() => Cosmetic, (cosmetic) => cosmetic.achievementId, {
+  @OneToMany(() => Cosmetic, (cosmetic) => cosmetic.achievement, {
     nullable: true,
   }) /* ill leave this nullable, achievements can have no rewards, just can be listed in user profiles */
   Reward: Cosmetic[]; /* (Cosmetic | Pet)[] will change to this later when we implement pets */
