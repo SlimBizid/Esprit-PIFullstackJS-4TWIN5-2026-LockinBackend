@@ -44,7 +44,7 @@ import { ChallengeRecommendation } from './recommendation/entities/challenge-rec
 import { RecommendationController } from './recommendation/recommendation.controller';
 import { RecommendationService } from './recommendation/recommendation.service';
 import { AchievementModule } from './achievement/achievement.module';
-import { AchievementModule } from './achievement/achievement.module';
+import { Achievement } from './achievement/entities/achievement.entity';
 
 @Module({
   imports: [
@@ -82,6 +82,7 @@ import { AchievementModule } from './achievement/achievement.module';
         ChallengeRecommendation,
         LeaderboardEntry,
         UserChallengeReward,
+        Achievement,
       ],
       ssl:
         process.env.ENV == 'prod'
