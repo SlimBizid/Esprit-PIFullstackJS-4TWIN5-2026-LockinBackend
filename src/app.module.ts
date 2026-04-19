@@ -43,6 +43,8 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
 import { ChallengeRecommendation } from './recommendation/entities/challenge-recommendation.entity';
 import { RecommendationController } from './recommendation/recommendation.controller';
 import { RecommendationService } from './recommendation/recommendation.service';
+import { AchievementModule } from './achievement/achievement.module';
+import { AchievementModule } from './achievement/achievement.module';
 
 @Module({
   imports: [
@@ -111,6 +113,7 @@ import { RecommendationService } from './recommendation/recommendation.service';
     CosmeticModule,
     LeaderboardModule,
     ScheduleModule.forRoot(),
+    AchievementModule,
   ],
   controllers: [
     AppController,

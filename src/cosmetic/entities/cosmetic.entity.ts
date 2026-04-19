@@ -2,12 +2,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 import { CosmeticRarity } from '../enums/cosmetic-rarity.enum';
 import { CosmeticType } from '../enums/cosmetic-type.enum';
+import { Achievement } from 'src/achievement/entities/achievement.entity';
 
 @Entity('cosmetics')
 export class Cosmetic {
@@ -30,8 +32,10 @@ export class Cosmetic {
   })
   cosmeticRarity: CosmeticRarity;
 
-  @Column({ name: 'achievement_id', type: 'uuid', nullable: true })
-  achievementId: string | null;
+  @ManyToOne(() => Achievement, (achievement) => achievement.Reward, {
+    nullable: true,
+  })
+  achievementId: Achievement;
 
   @Column({
     name: 'cosmetic_type',
