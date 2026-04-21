@@ -173,10 +173,17 @@ export class TeamService {
 
     const currentLeaderId =
       typeof team.leaderId === 'object' ? team.leaderId?.id : team.leaderId;
-    if (currentLeaderId === userId)
+    if (currentLeaderId === userId) {
+      if ((team.users?.length ?? 0) <= 1) {
+        throw new BadRequestException(
+          'Leader cannot quit as the only member. Delete the team instead',
+        );
+      }
+
       throw new BadRequestException(
         'Leader must choose a new leader before quitting',
       );
+    }
 
     const userEntity = await this.userRepository.findOne({
       where: { id: userId },
