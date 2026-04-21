@@ -12,12 +12,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { UserType } from './enums/user-type.enum';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Achievement } from 'src/achievement/entities/achievement.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Achievement)
+    private achievementRepository: Repository<Achievement>,
   ) {}
 
   async findByUsername(username: string): Promise<User | null> {
@@ -68,7 +71,33 @@ export class UserService {
   ): Promise<boolean> {
     return await bcrypt.compare(plaintextPassword, user.password);
   }
+  async getAllAchievementsWithStatus(userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
 
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const achievements = await this.achievementRepository.find({
+      relations: ['userAchievements', 'userAchievements.user'],
+    });
+
+    return achievements.map((achievement) => {
+      const userAchievement = achievement.userAchievements.find(
+        (ua) => ua.user.id === userId,
+      );
+
+      return {
+        id: achievement.id,
+        name: achievement.name,
+        imageUrl: achievement.imageUrl,
+        unlocked: !!userAchievement,
+        unlockedAt: userAchievement?.unlockedAt ?? null,
+      };
+    });
+  }
   async findUsernameExists(username: string): Promise<boolean> {
     const user = await this.userRepository.findOneBy({ username });
     if (user) {

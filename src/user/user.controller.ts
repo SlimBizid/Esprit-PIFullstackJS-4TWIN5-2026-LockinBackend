@@ -96,7 +96,10 @@ export class UserController {
 
     return this.userService.updateUserRole(id, updated_role);
   }
-
+  @Get(':id/achievements')
+  async getUserAchievements(@Param('id') id: string) {
+    return this.userService.getAllAchievementsWithStatus(id);
+  }
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteUser(@Param('id') id: string, @Request() req) {
