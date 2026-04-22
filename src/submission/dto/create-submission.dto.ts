@@ -1,10 +1,4 @@
-import {
-  IsInt,
-  IsObject,
-  IsOptional,
-  IsString,
-  Min,
-} from 'class-validator';
+import { IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateSubmissionDto {
   @IsInt()
@@ -13,7 +7,14 @@ export class CreateSubmissionDto {
 
   @IsOptional()
   @IsString()
-  language?: 'javascript' | 'typescript' | 'python' | 'java' | 'cpp' | 'quiz';
+  language?:
+    | 'javascript'
+    | 'typescript'
+    | 'python'
+    | 'java'
+    | 'cpp'
+    | 'quiz'
+    | 'css';
 
   @IsOptional()
   @IsString()
