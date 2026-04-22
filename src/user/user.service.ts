@@ -6,7 +6,6 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
@@ -71,9 +70,9 @@ export class UserService {
   ): Promise<boolean> {
     return await bcrypt.compare(plaintextPassword, user.password);
   }
-  async getAllAchievementsWithStatus(userId: string) {
+  async getAllAchievementsWithStatus(username: string) {
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { username },
     });
 
     if (!user) {
@@ -86,7 +85,7 @@ export class UserService {
 
     return achievements.map((achievement) => {
       const userAchievement = achievement.userAchievements.find(
-        (ua) => ua.user.id === userId,
+        (ua) => ua.user.id === user.id,
       );
 
       return {
