@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -8,7 +9,10 @@ import {
   Delete,
   UseGuards,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AchievementService } from './achievement.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { UpdateAchievementDto } from './dto/update-achievement.dto';
@@ -20,11 +24,17 @@ export class AchievementController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
+  @UseInterceptors(FileInterceptor('image'))
   create(
     @Req() req: any /* we need to define a type for requests btw */,
+    @UploadedFile() image: any,
     @Body() createAchievementDto: CreateAchievementDto,
   ) {
-    return this.achievementService.create(req.user, createAchievementDto);
+    if (!image) {
+      throw new BadRequestException('Achievement image is required');
+    }
+
+    return this.achievementService.create(req.user, createAchievementDto, image);
   }
 
   @Get()

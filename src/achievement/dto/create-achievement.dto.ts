@@ -11,9 +11,9 @@ export class CreateAchievementDto {
   @IsNotEmpty()
   name: string;
 
-  @IsOptional() //again, this will prob be removed
   @IsString()
-  imageUrl?: string;
+  @IsNotEmpty()
+  description: string;
 
   @IsOptional()
   @IsArray()

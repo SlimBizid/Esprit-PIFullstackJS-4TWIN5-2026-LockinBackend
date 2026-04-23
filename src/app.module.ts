@@ -46,6 +46,7 @@ import { RecommendationService } from './recommendation/recommendation.service';
 import { AchievementModule } from './achievement/achievement.module';
 import { Achievement } from './achievement/entities/achievement.entity';
 import { UserAchievement } from './achievement/entities/userachievement.entity';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { UserAchievement } from './achievement/entities/userachievement.entity';
     CosmeticModule,
     LeaderboardModule,
     ScheduleModule.forRoot(),
+    StorageModule,
     AchievementModule,
   ],
   controllers: [

@@ -17,6 +17,12 @@ export class Achievement {
   name: string;
 
   @Column({
+    type: 'text',
+    nullable: true,
+  })
+  description: string;
+
+  @Column({
     nullable: true,
   }) /*should be nullable false will leave it nullable for now for dev purposes */
   imageUrl: string;

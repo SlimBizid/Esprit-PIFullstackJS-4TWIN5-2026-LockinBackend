@@ -91,6 +91,7 @@ export class UserService {
       return {
         id: achievement.id,
         name: achievement.name,
+        description: achievement.description,
         imageUrl: achievement.imageUrl,
         unlocked: !!userAchievement,
         unlockedAt: userAchievement?.unlockedAt ?? null,

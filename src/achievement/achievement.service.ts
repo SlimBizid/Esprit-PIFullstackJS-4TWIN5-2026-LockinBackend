@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -11,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Achievement } from './entities/achievement.entity';
 import { Repository } from 'typeorm';
 import { UserAchievement } from './entities/userachievement.entity';
+import { ImageStorageService } from 'src/storage/image-storage.service';
 
 @Injectable()
 export class AchievementService {
@@ -19,12 +21,28 @@ export class AchievementService {
     private achievementRepository: Repository<Achievement>,
     @InjectRepository(UserAchievement)
     private userAchievementRepository: Repository<UserAchievement>,
+    private imageStorageService: ImageStorageService,
   ) {}
-  async create(user: User, createAchievementDto: CreateAchievementDto) {
+  async create(
+    user: User,
+    createAchievementDto: CreateAchievementDto,
+    image: any,
+  ) {
     if (user.type != UserType.ADMIN) {
       throw new UnauthorizedException('Only admin can create an achievement');
     }
-    return await this.achievementRepository.save(createAchievementDto);
+
+    if (!image?.buffer) {
+      throw new BadRequestException('Achievement image is required');
+    }
+
+    const imageUrl =
+      await this.imageStorageService.uploadImage(image, 'achievements');
+
+    return await this.achievementRepository.save({
+      ...createAchievementDto,
+      imageUrl,
+    });
   }
 
   async findAll(
