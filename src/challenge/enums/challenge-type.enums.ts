@@ -5,6 +5,6 @@ export enum ChallengeType {
   QUIZ_PVP = 'quiz_pvp',
   TEAMS = 'teams',
   IMPOSTER = 'imposter',
-  thats_not_my_coder = 'thats_not_my_coder',
-  css_battle = 'css_battle',
+  THATS_NOT_MY_CODER = 'thats_not_my_coder',
+  CSS_BATTLE = 'css_battle',
 }

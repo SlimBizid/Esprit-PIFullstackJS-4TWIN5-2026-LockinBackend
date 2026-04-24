@@ -26,8 +26,8 @@ const TYPE_SCORE_BONUS: Record<ChallengeType, number> = {
   [ChallengeType.QUIZ_PVP]: 50,
   [ChallengeType.TEAMS]: 30,
   [ChallengeType.IMPOSTER]: 40,
-  [ChallengeType.thats_not_my_coder]: 50,
-  [ChallengeType.css_battle]: 50,
+  [ChallengeType.THATS_NOT_MY_CODER]: 30,
+  [ChallengeType.CSS_BATTLE]: 0,
 };
 
 const BASE_XP: Record<ChallengeDifficulty, number> = {
@@ -43,8 +43,8 @@ const TYPE_XP_BONUS: Record<ChallengeType, number> = {
   [ChallengeType.QUIZ_PVP]: 20,
   [ChallengeType.TEAMS]: 10,
   [ChallengeType.IMPOSTER]: 15,
-  [ChallengeType.thats_not_my_coder]: 20,
-  [ChallengeType.css_battle]: 50,
+  [ChallengeType.THATS_NOT_MY_CODER]: 40,
+  [ChallengeType.CSS_BATTLE]: 15,
 };
 
 const LOGIN_XP = 10;

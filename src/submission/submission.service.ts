@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ChallengeService } from 'src/challenge/challenge.service';
 import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
 import { evaluateQuizAnswers } from 'src/challenge/utils/evaluate-quiz.util';
+import { scoreCssBattleCase } from 'src/challenge/utils/css-battle-score.util';
 import { CodeExecutionService } from 'src/code-execution/code-execution.service';
 import { MatchVerdict } from 'src/match/enums/match-verdict.enum';
 import { User } from 'src/user/entities/user.entity';
@@ -26,16 +27,25 @@ export class SubmissionService {
   async createSubmission(dto: CreateSubmissionDto, user: User) {
     const challenge = await this.challengeService.findOne(dto.challengeId);
 
-    if (![ChallengeType.SOLO, ChallengeType.QUIZ].includes(challenge.type)) {
+    if (
+      ![
+        ChallengeType.SOLO,
+        ChallengeType.QUIZ,
+        ChallengeType.CSS_BATTLE,
+      ].includes(challenge.type)
+    ) {
       throw new BadRequestException(
         'Only solo challenge modes can be submitted through this endpoint.',
       );
     }
 
     const isQuizChallenge = challenge.type === ChallengeType.QUIZ;
+    const isCssBattleChallenge = challenge.type === ChallengeType.CSS_BATTLE;
     const evaluation = isQuizChallenge
       ? this.evaluateQuizSubmission(challenge.quizQuestions, dto.answers)
-      : await this.evaluateCodeSubmission(dto);
+      : isCssBattleChallenge
+        ? await this.evaluateCssBattleSubmission(challenge, dto.sourceCode)
+        : await this.evaluateCodeSubmission(dto);
 
     const submission = this.submissionRepository.create({
       challengeId: challenge.id,
@@ -203,6 +213,97 @@ export class SubmissionService {
       totalCount: submission.totalCount,
       results: submission.results,
       createdAt: submission.createdAt,
+    };
+  }
+
+  private async evaluateCssBattleSubmission(
+    challenge: {
+      cases: Array<{
+        expectedOutput: string;
+        inputs: Array<{ type: string; value: string }>;
+      }>;
+    },
+    sourceCode?: string,
+  ) {
+    if (!sourceCode || sourceCode.trim().length === 0) {
+      throw new BadRequestException(
+        'CSS battle challenges require HTML/CSS source code.',
+      );
+    }
+
+    if (challenge.cases.length === 0) {
+      throw new BadRequestException(
+        'This CSS battle challenge does not have any cases configured.',
+      );
+    }
+
+    const results = [] as Array<{
+      passed: boolean;
+      actual: string;
+      expected: string;
+      runtime: string;
+      memoryKb: number | null;
+      status?: string;
+    }>;
+
+    const getInputValue = (
+      inputs: Array<{ type: string; value: string }>,
+      type: string,
+    ) => inputs.find((input) => input.type === type)?.value ?? '';
+
+    for (const testCase of challenge.cases) {
+      const targetHtml = getInputValue(testCase.inputs, 'targetHtml');
+      const targetCss = getInputValue(testCase.inputs, 'targetCss');
+      const background =
+        getInputValue(testCase.inputs, 'background') || '#ffffff';
+      const viewportWidth = Number(
+        getInputValue(testCase.inputs, 'viewportWidth'),
+      );
+      const viewportHeight = Number(
+        getInputValue(testCase.inputs, 'viewportHeight'),
+      );
+      const threshold = Number(testCase.expectedOutput);
+      const requiredScore = Number.isFinite(threshold) ? threshold : 100;
+
+      if (!targetHtml.trim() || !targetCss.trim()) {
+        results.push({
+          passed: false,
+          actual: '0.00%',
+          expected: `${requiredScore.toFixed(2)}%`,
+          runtime: '0',
+          memoryKb: null,
+          status: 'Missing target HTML/CSS.',
+        });
+        continue;
+      }
+
+      const score = await scoreCssBattleCase({
+        targetHtml,
+        targetCss,
+        submissionMarkup: sourceCode,
+        viewportWidth,
+        viewportHeight,
+        background,
+      });
+      const passed = score >= requiredScore;
+
+      results.push({
+        passed,
+        actual: `${score.toFixed(2)}%`,
+        expected: `${requiredScore.toFixed(2)}%`,
+        runtime: '0',
+        memoryKb: null,
+        status: `Similarity ${score.toFixed(2)}%`,
+      });
+    }
+    const passedCount = results.filter((result) => result.passed).length;
+    const totalCount = results.length;
+
+    return {
+      results,
+      passedCount,
+      totalCount,
+      verdict: this.getVerdict(results, passedCount, totalCount),
     };
   }
 }
