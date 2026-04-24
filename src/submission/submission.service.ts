@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChallengeService } from 'src/challenge/challenge.service';
-import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
-import { evaluateQuizAnswers } from 'src/challenge/utils/evaluate-quiz.util';
-import { scoreCssBattleCase } from 'src/challenge/utils/css-battle-score.util';
-import { CodeExecutionService } from 'src/code-execution/code-execution.service';
-import { MatchVerdict } from 'src/match/enums/match-verdict.enum';
-import { User } from 'src/user/entities/user.entity';
+import { ChallengeService } from '../challenge/challenge.service';
+import { ChallengeType } from '../challenge/enums/challenge-type.enums';
+import { evaluateQuizAnswers } from '../challenge/utils/evaluate-quiz.util';
+import { scoreCssBattleCase } from '../challenge/utils/css-battle-score.util';
+import { CodeExecutionService } from '../code-execution/code-execution.service';
+import { MatchVerdict } from '../match/enums/match-verdict.enum';
+import { User } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
 
 import { CreateSubmissionDto } from './dto/create-submission.dto';
