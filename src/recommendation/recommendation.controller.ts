@@ -15,9 +15,7 @@ import { RecommendationService } from './recommendation.service';
 @Controller('recommendations')
 @UseGuards(JwtAuthGuard)
 export class RecommendationController {
-  constructor(
-    private readonly recommendationService: RecommendationService,
-  ) {}
+  constructor(private readonly recommendationService: RecommendationService) {}
 
   @Get('me')
   listMyRecommendations(

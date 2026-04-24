@@ -43,6 +43,11 @@ import { ChallengeReviewCommentReport } from './review/entities/challenge-review
 import { ChallengeRecommendation } from './recommendation/entities/challenge-recommendation.entity';
 import { RecommendationController } from './recommendation/recommendation.controller';
 import { RecommendationService } from './recommendation/recommendation.service';
+import { AchievementModule } from './achievement/achievement.module';
+import { Achievement } from './achievement/entities/achievement.entity';
+import { UserAchievement } from './achievement/entities/userachievement.entity';
+import { StorageModule } from './storage/storage.module';
+import { UserCosmetic } from './user/entities/user-cosmetic.entity';
 
 @Module({
   imports: [
@@ -80,6 +85,9 @@ import { RecommendationService } from './recommendation/recommendation.service';
         ChallengeRecommendation,
         LeaderboardEntry,
         UserChallengeReward,
+        Achievement,
+        UserAchievement,
+        UserCosmetic,
       ],
       ssl:
         process.env.ENV == 'prod'
@@ -111,6 +119,8 @@ import { RecommendationService } from './recommendation/recommendation.service';
     CosmeticModule,
     LeaderboardModule,
     ScheduleModule.forRoot(),
+    StorageModule,
+    AchievementModule,
   ],
   controllers: [
     AppController,

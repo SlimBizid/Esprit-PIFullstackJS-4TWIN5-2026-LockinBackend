@@ -6,18 +6,26 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { UserType } from './enums/user-type.enum';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Achievement } from 'src/achievement/entities/achievement.entity';
+import { UserCosmetic } from './entities/user-cosmetic.entity';
+import { Cosmetic } from 'src/cosmetic/entities/cosmetic.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Achievement)
+    private achievementRepository: Repository<Achievement>,
+    @InjectRepository(UserCosmetic)
+    private userCosmeticRepository: Repository<UserCosmetic>,
+    @InjectRepository(Cosmetic)
+    private cosmeticRepository: Repository<Cosmetic>,
   ) {}
 
   async findByUsername(username: string): Promise<User | null> {
@@ -68,7 +76,38 @@ export class UserService {
   ): Promise<boolean> {
     return await bcrypt.compare(plaintextPassword, user.password);
   }
+  async getAllAchievementsWithStatus(username: string) {
+    const user = await this.userRepository.findOne({
+      where: { username },
+    });
 
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const achievements = await this.achievementRepository.find({
+      relations: ['userAchievements', 'userAchievements.user', 'Reward'],
+      order: { createdAt: 'ASC' },
+    });
+
+    return achievements.map((achievement) => {
+      const userAchievement = achievement.userAchievements.find(
+        (ua) => ua.user.id === user.id,
+      );
+
+      return {
+        id: achievement.id,
+        name: achievement.name,
+        description: achievement.description,
+        type: achievement.type,
+        imageUrl: achievement.imageUrl,
+        createdAt: achievement.createdAt,
+        rewards: achievement.Reward ?? [],
+        unlocked: !!userAchievement,
+        unlockedAt: userAchievement?.unlockedAt ?? null,
+      };
+    });
+  }
   async findUsernameExists(username: string): Promise<boolean> {
     const user = await this.userRepository.findOneBy({ username });
     if (user) {
@@ -179,11 +218,118 @@ export class UserService {
     return this.userRepository.findOne({ where: { id } });
   }
 
-  async getProfile(username: string): Promise<User | string> {
-    const user = await this.findByUsername(username);
+  async getProfile(
+    username: string,
+  ): Promise<Record<string, unknown> | string> {
+    const user = await this.userRepository.findOne({
+      where: { username },
+      relations: ['userCosmetics', 'userCosmetics.cosmetic'],
+    });
+
     if (!user) {
       return "User with this username doesn't exist";
     }
-    return user;
+
+    return {
+      id: user.id,
+      username: user.username,
+      githubHandle: user.githubHandle,
+      email: user.email,
+      type: user.type,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      xp: user.xp,
+      cosmetics: user.userCosmetics.map((userCosmetic) => ({
+        ...userCosmetic.cosmetic,
+        equipped: userCosmetic.equipped,
+      })),
+    };
+  }
+
+  async grantCosmeticToUser(
+    requester: User,
+    userId: string,
+    cosmeticId: string,
+  ): Promise<UserCosmetic> {
+    if (requester.type !== UserType.ADMIN) {
+      throw new BadRequestException('Only admin can grant cosmetics');
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const cosmetic = await this.cosmeticRepository.findOne({
+      where: { id: cosmeticId },
+    });
+    if (!cosmetic) {
+      throw new NotFoundException('Cosmetic not found');
+    }
+
+    const existing = await this.userCosmeticRepository.findOne({
+      where: {
+        user: { id: user.id },
+        cosmetic: { id: cosmetic.id },
+      },
+      relations: ['user', 'cosmetic'],
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.userCosmeticRepository.save({
+      user,
+      cosmetic,
+      equipped: false,
+    });
+  }
+
+  async equipCosmetic(user: User, cosmeticId: string): Promise<UserCosmetic> {
+    const ownedCosmetic = await this.userCosmeticRepository.findOne({
+      where: {
+        user: { id: user.id },
+        cosmetic: { id: cosmeticId },
+      },
+      relations: ['user', 'cosmetic'],
+    });
+
+    if (!ownedCosmetic) {
+      throw new NotFoundException('User does not own this cosmetic');
+    }
+
+    const sameTypeCosmetics = await this.userCosmeticRepository.find({
+      where: {
+        user: { id: user.id },
+      },
+      relations: ['cosmetic'],
+    });
+
+    const matchingTypeOwnerships = sameTypeCosmetics.filter(
+      (userCosmetic) =>
+        userCosmetic.cosmetic.cosmeticType ===
+        ownedCosmetic.cosmetic.cosmeticType,
+    );
+
+    await this.userCosmeticRepository.save(
+      matchingTypeOwnerships.map((userCosmetic) => ({
+        ...userCosmetic,
+        equipped: userCosmetic.id === ownedCosmetic.id,
+      })),
+    );
+
+    const updatedOwnership = await this.userCosmeticRepository.findOne({
+      where: { id: ownedCosmetic.id },
+      relations: ['user', 'cosmetic'],
+    });
+
+    if (!updatedOwnership) {
+      throw new NotFoundException('Equipped cosmetic could not be loaded');
+    }
+
+    return updatedOwnership;
   }
 }
