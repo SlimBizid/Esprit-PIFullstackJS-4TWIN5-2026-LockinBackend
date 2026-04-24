@@ -1,11 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 
 import { Cosmetic } from './entities/cosmetic.entity';
 import { CreateCosmeticDto } from './dto/create-cosmetic.dto';
 import { UpdateCosmeticDto } from './dto/update-cosmetic.dto';
-import { AchievementService } from 'src/achievement/achievement.service';
 import { Achievement } from 'src/achievement/entities/achievement.entity';
 
 @Injectable()
@@ -13,13 +12,23 @@ export class CosmeticService {
   constructor(
     @InjectRepository(Cosmetic)
     private readonly cosmeticRepository: Repository<Cosmetic>,
-    private readonly achievementService: AchievementService,
+    @InjectRepository(Achievement)
+    private readonly achievementRepository: Repository<Achievement>,
   ) {}
 
   async create(dto: CreateCosmeticDto): Promise<Cosmetic> {
     let achievement: Achievement | undefined = undefined;
     if (dto.achievementId) {
-      achievement = await this.achievementService.findOne(dto.achievementId);
+      const nachievement = await this.achievementRepository.findOne({
+        where: { id: dto.achievementId },
+      });
+
+      if (!nachievement) {
+        throw new NotFoundException(
+          `Achievement ${dto.achievementId} not found`,
+        );
+      }
+      achievement = nachievement;
     }
 
     return await this.cosmeticRepository.save({
@@ -61,6 +70,60 @@ export class CosmeticService {
       throw new NotFoundException(`Cosmetic ${id} not found`);
     }
     return cosmetic;
+  }
+
+  async findAvailableRewards(): Promise<Cosmetic[]> {
+    return this.cosmeticRepository.find({
+      where: {
+        achievement: IsNull(),
+      },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findRewardConflicts(cosmeticIds: string[]): Promise<Cosmetic[]> {
+    if (cosmeticIds.length === 0) {
+      return [];
+    }
+
+    return this.cosmeticRepository
+      .find({
+        where: {
+          id: In(cosmeticIds),
+        },
+        relations: ['achievement'],
+      })
+      .then((cosmetics) =>
+        cosmetics.filter((cosmetic) => cosmetic.achievement != null),
+      );
+  }
+
+  async assignAchievementToCosmetics(
+    cosmeticIds: string[],
+    achievement: Achievement,
+  ): Promise<void> {
+    if (cosmeticIds.length === 0) {
+      return;
+    }
+
+    const cosmetics = await this.cosmeticRepository.find({
+      where: {
+        id: In(cosmeticIds),
+      },
+    });
+
+    if (cosmetics.length !== cosmeticIds.length) {
+      const foundIds = new Set(cosmetics.map((cosmetic) => cosmetic.id));
+      const missingId = cosmeticIds.find((id) => !foundIds.has(id));
+      throw new NotFoundException(`Cosmetic ${missingId} not found`);
+    }
+
+    await this.cosmeticRepository.save(
+      cosmetics.map((cosmetic) => ({
+        ...cosmetic,
+        achievement,
+      })),
+    );
   }
 
   async update(id: string, dto: UpdateCosmeticDto): Promise<Cosmetic> {

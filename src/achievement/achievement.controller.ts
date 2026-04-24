@@ -17,6 +17,7 @@ import { AchievementService } from './achievement.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
 import { UpdateAchievementDto } from './dto/update-achievement.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { AchievementType } from './enums/achievement-type.enum';
 
 @Controller('achievement')
 export class AchievementController {
@@ -34,12 +35,21 @@ export class AchievementController {
       throw new BadRequestException('Achievement image is required');
     }
 
-    return this.achievementService.create(req.user, createAchievementDto, image);
+    return this.achievementService.create(
+      req.user,
+      createAchievementDto,
+      image,
+    );
   }
 
   @Get()
   findAll() {
     return this.achievementService.findAll();
+  }
+
+  @Get('types')
+  getTypes() {
+    return Object.values(AchievementType);
   }
 
   @Get(':id')

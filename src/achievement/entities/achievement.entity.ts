@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { UserAchievement } from './userachievement.entity';
+import { AchievementType } from '../enums/achievement-type.enum';
 
 @Entity('Achievement')
 export class Achievement {
@@ -21,6 +22,13 @@ export class Achievement {
     nullable: true,
   })
   description: string;
+
+  @Column({
+    type: 'enum',
+    enum: AchievementType,
+    default: AchievementType.GENERAL_CHALLENGES,
+  })
+  type: AchievementType;
 
   @Column({
     nullable: true,

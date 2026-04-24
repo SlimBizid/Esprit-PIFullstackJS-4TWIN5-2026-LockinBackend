@@ -13,6 +13,7 @@ import { Achievement } from './entities/achievement.entity';
 import { Repository } from 'typeorm';
 import { UserAchievement } from './entities/userachievement.entity';
 import { ImageStorageService } from 'src/storage/image-storage.service';
+import { CosmeticService } from 'src/cosmetic/cosmetic.service';
 
 @Injectable()
 export class AchievementService {
@@ -22,6 +23,7 @@ export class AchievementService {
     @InjectRepository(UserAchievement)
     private userAchievementRepository: Repository<UserAchievement>,
     private imageStorageService: ImageStorageService,
+    private cosmeticService: CosmeticService,
   ) {}
   async create(
     user: User,
@@ -36,13 +38,38 @@ export class AchievementService {
       throw new BadRequestException('Achievement image is required');
     }
 
-    const imageUrl =
-      await this.imageStorageService.uploadImage(image, 'achievements');
+    const imageUrl = await this.imageStorageService.uploadImage(
+      image,
+      'achievements',
+    );
 
-    return await this.achievementRepository.save({
-      ...createAchievementDto,
+    const cosmeticIds = createAchievementDto.cosmeticIds ?? [];
+    const conflictingCosmetics =
+      await this.cosmeticService.findRewardConflicts(cosmeticIds);
+
+    if (conflictingCosmetics.length > 0) {
+      const details = conflictingCosmetics
+        .map((cosmetic) => `${cosmetic.cosmeticTitle} (${cosmetic.id})`)
+        .join(', ');
+
+      throw new BadRequestException(
+        `These cosmetics are already linked to an achievement: ${details}`,
+      );
+    }
+
+    const achievement = await this.achievementRepository.save({
+      name: createAchievementDto.name,
+      description: createAchievementDto.description,
+      type: createAchievementDto.type,
       imageUrl,
     });
+
+    await this.cosmeticService.assignAchievementToCosmetics(
+      cosmeticIds,
+      achievement,
+    );
+
+    return achievement;
   }
 
   async findAll(

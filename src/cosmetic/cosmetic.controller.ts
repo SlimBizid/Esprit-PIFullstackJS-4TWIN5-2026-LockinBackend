@@ -33,6 +33,12 @@ export class CosmeticController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('available-rewards')
+  async findAvailableRewards() {
+    return this.cosmeticService.findAvailableRewards();
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.cosmeticService.findOne(id);

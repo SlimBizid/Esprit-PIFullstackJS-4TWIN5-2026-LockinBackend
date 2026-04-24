@@ -80,7 +80,8 @@ export class UserService {
     }
 
     const achievements = await this.achievementRepository.find({
-      relations: ['userAchievements', 'userAchievements.user'],
+      relations: ['userAchievements', 'userAchievements.user', 'Reward'],
+      order: { createdAt: 'ASC' },
     });
 
     return achievements.map((achievement) => {
@@ -92,7 +93,10 @@ export class UserService {
         id: achievement.id,
         name: achievement.name,
         description: achievement.description,
+        type: achievement.type,
         imageUrl: achievement.imageUrl,
+        createdAt: achievement.createdAt,
+        rewards: achievement.Reward ?? [],
         unlocked: !!userAchievement,
         unlockedAt: userAchievement?.unlockedAt ?? null,
       };
