@@ -10,6 +10,8 @@ import { Cosmetic } from './entities/cosmetic.entity';
 import { CreateCosmeticDto } from './dto/create-cosmetic.dto';
 import { UpdateCosmeticDto } from './dto/update-cosmetic.dto';
 import { Achievement } from 'src/achievement/entities/achievement.entity';
+import { User } from 'src/user/entities/user.entity';
+import { UserCosmetic } from 'src/user/entities/user-cosmetic.entity';
 
 @Injectable()
 export class CosmeticService {
@@ -18,6 +20,10 @@ export class CosmeticService {
     private readonly cosmeticRepository: Repository<Cosmetic>,
     @InjectRepository(Achievement)
     private readonly achievementRepository: Repository<Achievement>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(UserCosmetic)
+    private readonly userCosmeticRepository: Repository<UserCosmetic>,
   ) {}
 
   private async resolveAchievement(
@@ -106,7 +112,23 @@ export class CosmeticService {
     return cosmetic;
   }
 
+  async findOneForUser(id: string, userId: string): Promise<Cosmetic & { owned: boolean }> {
+    const cosmetic = await this.findOne(id);
+    const ownership = await this.userCosmeticRepository.findOne({
+      where: {
+        user: { id: userId },
+        cosmetic: { id },
+      },
+    });
+
+    return {
+      ...cosmetic,
+      owned: !!ownership,
+    };
+  }
+
   async findShopCosmetics(
+    userId: string,
     page: number = 1,
     limit: number = 20,
   ): Promise<{
@@ -127,11 +149,23 @@ export class CosmeticService {
       order: { createdAt: 'DESC' },
     });
 
+    const ownedCosmetics = await this.userCosmeticRepository.find({
+      where: {
+        user: { id: userId },
+      },
+      relations: ['cosmetic'],
+    });
+
+    const ownedIds = new Set(
+      ownedCosmetics.map((userCosmetic) => userCosmetic.cosmetic.id),
+    );
+    const filteredData = data.filter((cosmetic) => !ownedIds.has(cosmetic.id));
+
     return {
-      data,
-      total,
+      data: filteredData,
+      total: filteredData.length,
       page,
-      lastPage: Math.ceil(total / limit),
+      lastPage: Math.ceil(filteredData.length / limit),
     };
   }
 
@@ -233,5 +267,54 @@ export class CosmeticService {
   async remove(id: string): Promise<void> {
     const cosmetic = await this.findOne(id);
     await this.cosmeticRepository.remove(cosmetic);
+  }
+
+  async buy(userId: string, cosmeticId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const cosmetic = await this.findOne(cosmeticId);
+
+    if (cosmetic.price == null || cosmetic.achievementId != null) {
+      throw new BadRequestException(
+        'This cosmetic is not available for purchase',
+      );
+    }
+
+    const existingOwnership = await this.userCosmeticRepository.findOne({
+      where: {
+        user: { id: user.id },
+        cosmetic: { id: cosmetic.id },
+      },
+      relations: ['user', 'cosmetic'],
+    });
+
+    if (existingOwnership) {
+      throw new BadRequestException('You already own this cosmetic');
+    }
+
+    if (user.coins < cosmetic.price) {
+      throw new BadRequestException('Not enough coins');
+    }
+
+    user.coins -= cosmetic.price;
+    await this.userRepository.save(user);
+
+    const ownership = await this.userCosmeticRepository.save({
+      user,
+      cosmetic,
+      equipped: false,
+    });
+
+    return {
+      message: 'Cosmetic purchased successfully',
+      coins: user.coins,
+      cosmetic: ownership.cosmetic,
+      ownershipId: ownership.id,
+    };
   }
 }

@@ -14,6 +14,7 @@ import { Exclude } from 'class-transformer';
 import { UserType } from '../enums/user-type.enum';
 import { Team } from 'src/team/entities/team.entity';
 import { UserAchievement } from 'src/achievement/entities/userachievement.entity';
+import { UserCosmetic } from './user-cosmetic.entity';
 
 @Entity('users')
 export class User {
@@ -36,6 +37,9 @@ export class User {
   @Column({ type: 'int', default: 0 })
   xp: number;
 
+  @Column({ type: 'int', default: 0 })
+  coins: number;
+
   @Column({ type: 'enum', enum: UserType, default: UserType.PLAYER })
   type: UserType;
 
@@ -54,4 +58,7 @@ export class User {
 
   @OneToMany(() => UserAchievement, (userach) => userach.user)
   userAchievements: UserAchievement[];
+
+  @OneToMany(() => UserCosmetic, (userCosmetic) => userCosmetic.user)
+  userCosmetics: UserCosmetic[];
 }

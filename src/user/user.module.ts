@@ -4,11 +4,12 @@ import { UserController } from './user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Achievement } from 'src/achievement/entities/achievement.entity';
+import { UserCosmetic } from './entities/user-cosmetic.entity';
+import { Cosmetic } from 'src/cosmetic/entities/cosmetic.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
-    TypeOrmModule.forFeature([Achievement]),
+    TypeOrmModule.forFeature([User, Achievement, UserCosmetic, Cosmetic]),
   ],
   providers: [UserService],
   controllers: [UserController],

@@ -5,9 +5,13 @@ import { Cosmetic } from './entities/cosmetic.entity';
 import { CosmeticController } from './cosmetic.controller';
 import { CosmeticService } from './cosmetic.service';
 import { Achievement } from 'src/achievement/entities/achievement.entity';
+import { User } from 'src/user/entities/user.entity';
+import { UserCosmetic } from 'src/user/entities/user-cosmetic.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Cosmetic, Achievement])],
+  imports: [
+    TypeOrmModule.forFeature([Cosmetic, Achievement, User, UserCosmetic]),
+  ],
   controllers: [CosmeticController],
   providers: [CosmeticService],
   exports: [CosmeticService],

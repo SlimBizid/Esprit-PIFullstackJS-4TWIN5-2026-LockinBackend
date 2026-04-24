@@ -75,6 +75,7 @@ export class AuthService {
       githubHandle: user.githubHandle,
       email: user.email,
       type: user.type,
+      coins: user.coins,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

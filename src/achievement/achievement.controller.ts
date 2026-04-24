@@ -6,6 +6,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
   Req,
@@ -43,8 +44,8 @@ export class AchievementController {
   }
 
   @Get()
-  findAll() {
-    return this.achievementService.findAll();
+  findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+    return this.achievementService.findAll(Number(page), Number(limit));
   }
 
   @Get('types')

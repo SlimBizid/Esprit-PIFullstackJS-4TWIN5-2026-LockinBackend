@@ -120,7 +120,9 @@ export class SubmissionService {
         | 'cpp',
       sourceCode: dto.sourceCode,
     });
-    const passedCount = execution.results.filter((result) => result.passed).length;
+    const passedCount = execution.results.filter(
+      (result) => result.passed,
+    ).length;
     const totalCount = execution.results.length;
 
     return {
@@ -148,7 +150,9 @@ export class SubmissionService {
     }
 
     if (!answers || Object.keys(answers).length === 0) {
-      throw new BadRequestException('Select at least one answer before submitting.');
+      throw new BadRequestException(
+        'Select at least one answer before submitting.',
+      );
     }
 
     return evaluateQuizAnswers(questions, answers);

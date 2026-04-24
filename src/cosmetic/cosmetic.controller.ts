@@ -41,16 +41,27 @@ export class CosmeticController {
   @UseGuards(JwtAuthGuard)
   @Get('shop')
   async findShop(
+    @Request() req,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    return this.cosmeticService.findShopCosmetics(Number(page), Number(limit));
+    return this.cosmeticService.findShopCosmetics(
+      req.user.id,
+      Number(page),
+      Number(limit),
+    );
   }
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.cosmeticService.findOne(id);
+  async findOne(@Param('id') id: string, @Request() req) {
+    return this.cosmeticService.findOneForUser(id, req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('buy/:id')
+  async buy(@Param('id') id: string, @Request() req) {
+    return this.cosmeticService.buy(req.user.id, id);
   }
 
   @UseGuards(JwtAuthGuard)

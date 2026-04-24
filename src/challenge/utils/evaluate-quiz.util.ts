@@ -39,7 +39,8 @@ export function evaluateQuizAnswers(
 
     return {
       passed,
-      actual: selectedLabels.length > 0 ? selectedLabels.join(', ') : 'No answer',
+      actual:
+        selectedLabels.length > 0 ? selectedLabels.join(', ') : 'No answer',
       expected: expectedLabels.join(', '),
       runtime: '0',
       memoryKb: null,

@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   RelationId,
   UpdateDateColumn,
@@ -11,6 +12,7 @@ import {
 import { CosmeticRarity } from '../enums/cosmetic-rarity.enum';
 import { CosmeticType } from '../enums/cosmetic-type.enum';
 import { Achievement } from 'src/achievement/entities/achievement.entity';
+import { UserCosmetic } from 'src/user/entities/user-cosmetic.entity';
 
 @Entity('cosmetics')
 export class Cosmetic {
@@ -59,4 +61,7 @@ export class Cosmetic {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => UserCosmetic, (userCosmetic) => userCosmetic.cosmetic)
+  userCosmetics: UserCosmetic[];
 }

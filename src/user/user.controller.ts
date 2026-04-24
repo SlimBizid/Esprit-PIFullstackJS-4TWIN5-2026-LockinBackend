@@ -8,6 +8,7 @@ import {
   NotFoundException,
   Param,
   Patch,
+  Post,
   Query,
   Request,
   UseGuards,
@@ -41,10 +42,13 @@ export class UserController {
     }
 
     return {
+      id: user.id,
       username: user.username,
       email: user.email,
       type: user.type,
       githubHandle: user.githubHandle,
+      coins: user.coins,
+      xp: user.xp,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -53,6 +57,29 @@ export class UserController {
   @Get('profile/:username')
   async getProfile(@Request() req, @Param('username') username: string) {
     return this.userService.getProfile(username);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/cosmetics/:cosmeticId')
+  async grantCosmetic(
+    @Param('id') id: string,
+    @Param('cosmeticId') cosmeticId: string,
+    @Request() req: Request & { user: User },
+  ) {
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admin can grant cosmetics');
+    }
+
+    return this.userService.grantCosmeticToUser(req.user, id, cosmeticId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/equipped-cosmetics/:cosmeticId')
+  async equipCosmetic(
+    @Param('cosmeticId') cosmeticId: string,
+    @Request() req: Request & { user: User },
+  ) {
+    return this.userService.equipCosmetic(req.user, cosmeticId);
   }
 
   @UseGuards(JwtAuthGuard)
