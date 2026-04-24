@@ -4,6 +4,7 @@ import {
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
+  RelationId,
   UpdateDateColumn,
 } from 'typeorm';
 
@@ -35,7 +36,16 @@ export class Cosmetic {
   @ManyToOne(() => Achievement, (achievement) => achievement.Reward, {
     nullable: true,
   })
-  achievement: Achievement;
+  achievement: Achievement | null;
+
+  @RelationId((cosmetic: Cosmetic) => cosmetic.achievement)
+  achievementId?: string | null;
+
+  @Column({
+    type: 'int',
+    nullable: true,
+  })
+  price: number | null;
 
   @Column({
     name: 'cosmetic_type',

@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 
 import { Cosmetic } from './entities/cosmetic.entity';
 import { CreateCosmeticDto } from './dto/create-cosmetic.dto';
@@ -16,27 +20,53 @@ export class CosmeticService {
     private readonly achievementRepository: Repository<Achievement>,
   ) {}
 
-  async create(dto: CreateCosmeticDto): Promise<Cosmetic> {
-    let achievement: Achievement | undefined = undefined;
-    if (dto.achievementId) {
-      const nachievement = await this.achievementRepository.findOne({
-        where: { id: dto.achievementId },
-      });
-
-      if (!nachievement) {
-        throw new NotFoundException(
-          `Achievement ${dto.achievementId} not found`,
-        );
-      }
-      achievement = nachievement;
+  private async resolveAchievement(
+    achievementId?: string | null,
+  ): Promise<Achievement | null | undefined> {
+    if (achievementId === undefined) {
+      return undefined;
     }
+
+    if (achievementId === null) {
+      return null;
+    }
+
+    const achievement = await this.achievementRepository.findOne({
+      where: { id: achievementId },
+    });
+
+    if (!achievement) {
+      throw new NotFoundException(`Achievement ${achievementId} not found`);
+    }
+
+    return achievement;
+  }
+
+  private assertRewardPriceCompatibility(
+    price: number | null | undefined,
+    achievement: Achievement | null | undefined,
+  ) {
+    if (achievement && price != null) {
+      throw new BadRequestException(
+        'A cosmetic linked to an achievement cannot have a price',
+      );
+    }
+  }
+
+  async create(dto: CreateCosmeticDto): Promise<Cosmetic> {
+    const achievement =
+      (await this.resolveAchievement(dto.achievementId)) ?? null;
+    const price: number | undefined = dto.price ?? undefined;
+
+    this.assertRewardPriceCompatibility(price, achievement);
 
     return await this.cosmeticRepository.save({
       imageUrl: dto.imageUrl,
       cosmeticTitle: dto.cosmeticTitle,
       cosmeticDescription: dto.cosmeticDescription,
       cosmeticRarity: dto.cosmeticRarity,
-      achievement: achievement,
+      achievement,
+      price,
       cosmeticType: dto.cosmeticType,
     });
   }
@@ -54,6 +84,7 @@ export class CosmeticService {
     const [data, total] = await this.cosmeticRepository.findAndCount({
       skip,
       take: limit,
+      relations: ['achievement'],
       order: { createdAt: 'DESC' },
     });
     return {
@@ -65,18 +96,52 @@ export class CosmeticService {
   }
 
   async findOne(id: string): Promise<Cosmetic> {
-    const cosmetic = await this.cosmeticRepository.findOne({ where: { id } });
+    const cosmetic = await this.cosmeticRepository.findOne({
+      where: { id },
+      relations: ['achievement'],
+    });
     if (!cosmetic) {
       throw new NotFoundException(`Cosmetic ${id} not found`);
     }
     return cosmetic;
   }
 
+  async findShopCosmetics(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{
+    data: Cosmetic[];
+    total: number;
+    page: number;
+    lastPage: number;
+  }> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await this.cosmeticRepository.findAndCount({
+      where: {
+        achievement: IsNull(),
+        price: Not(IsNull()),
+      },
+      relations: ['achievement'],
+      skip,
+      take: limit,
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      data,
+      total,
+      page,
+      lastPage: Math.ceil(total / limit),
+    };
+  }
+
   async findAvailableRewards(): Promise<Cosmetic[]> {
     return this.cosmeticRepository.find({
       where: {
         achievement: IsNull(),
+        price: IsNull(),
       },
+      relations: ['achievement'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -118,21 +183,30 @@ export class CosmeticService {
       throw new NotFoundException(`Cosmetic ${missingId} not found`);
     }
 
+    const pricedCosmetic = cosmetics.find((cosmetic) => cosmetic.price != null);
+    if (pricedCosmetic) {
+      throw new BadRequestException(
+        `Cosmetic ${pricedCosmetic.cosmeticTitle} (${pricedCosmetic.id}) already has a price and cannot be used as an achievement reward`,
+      );
+    }
+
     await this.cosmeticRepository.save(
       cosmetics.map((cosmetic) => ({
         ...cosmetic,
         achievement,
+        price: null,
       })),
     );
   }
 
   async update(id: string, dto: UpdateCosmeticDto): Promise<Cosmetic> {
     const cosmetic = await this.findOne(id);
+    const nextAchievement = await this.resolveAchievement(dto.achievementId);
+    const achievement =
+      nextAchievement === undefined ? cosmetic.achievement : nextAchievement;
+    const price = dto.price === undefined ? cosmetic.price : dto.price;
 
-    if (dto.achievementId !== undefined) {
-      // TODO: Check if achievement with this UUID exists before updating cosmetic.
-      // Throw an error if it doesn't.
-    }
+    this.assertRewardPriceCompatibility(price, achievement);
 
     Object.assign(cosmetic, {
       ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
@@ -146,8 +220,9 @@ export class CosmeticService {
         cosmeticRarity: dto.cosmeticRarity,
       }),
       ...(dto.achievementId !== undefined && {
-        achievementId: dto.achievementId,
+        achievement,
       }),
+      ...(dto.price !== undefined && { price }),
       ...(dto.cosmeticType !== undefined && {
         cosmeticType: dto.cosmeticType,
       }),

@@ -39,6 +39,15 @@ export class CosmeticController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('shop')
+  async findShop(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+  ) {
+    return this.cosmeticService.findShopCosmetics(Number(page), Number(limit));
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.cosmeticService.findOne(id);
