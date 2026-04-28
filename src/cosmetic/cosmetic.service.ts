@@ -112,7 +112,10 @@ export class CosmeticService {
     return cosmetic;
   }
 
-  async findOneForUser(id: string, userId: string): Promise<Cosmetic & { owned: boolean }> {
+  async findOneForUser(
+    id: string,
+    userId: string,
+  ): Promise<Cosmetic & { owned: boolean }> {
     const cosmetic = await this.findOne(id);
     const ownership = await this.userCosmeticRepository.findOne({
       where: {
