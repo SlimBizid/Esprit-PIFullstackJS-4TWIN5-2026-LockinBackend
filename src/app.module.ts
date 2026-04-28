@@ -48,6 +48,7 @@ import { Achievement } from './achievement/entities/achievement.entity';
 import { UserAchievement } from './achievement/entities/userachievement.entity';
 import { StorageModule } from './storage/storage.module';
 import { UserCosmetic } from './user/entities/user-cosmetic.entity';
+import { SearchIndexBootstrapService } from './common/search-index-bootstrap.service';
 
 @Module({
   imports: [
@@ -141,6 +142,7 @@ import { UserCosmetic } from './user/entities/user-cosmetic.entity';
     SubmissionService,
     ReviewService,
     RecommendationService,
+    SearchIndexBootstrapService,
   ],
 })
 export class AppModule {}

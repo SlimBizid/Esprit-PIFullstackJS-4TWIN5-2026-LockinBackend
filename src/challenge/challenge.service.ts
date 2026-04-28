@@ -50,7 +50,11 @@ export class ChallengeService {
     if (difficulty) where.difficulty = difficulty;
     if (type) where.type = type;
 
-    if (search) where.title = ILike(`%${search}%`);
+    const normalizedSearch = search?.trim();
+
+    if (normalizedSearch) {
+      where.title = ILike(`%${normalizedSearch}%`);
+    }
 
     const isAdminQueryingDeleted = deleted === true && role === UserType.ADMIN;
 

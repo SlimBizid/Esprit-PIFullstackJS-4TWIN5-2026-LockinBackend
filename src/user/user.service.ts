@@ -161,7 +161,11 @@ export class UserService {
 
     if (type) where.type = type;
 
-    if (search) where.username = ILike(`%${search}%`);
+    const normalizedSearch = search?.trim();
+
+    if (normalizedSearch) {
+      where.username = ILike(`%${normalizedSearch}%`);
+    }
 
     const [users, total] = await this.userRepository.findAndCount({
       where,
