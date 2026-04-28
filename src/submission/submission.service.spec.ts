@@ -1,4 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ChallengeDifficulty } from 'src/challenge/enums/challenge-difficulty.enums';
 import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
 import { ChallengeService } from 'src/challenge/challenge.service';
@@ -6,6 +9,7 @@ import { CodeExecutionService } from 'src/code-execution/code-execution.service'
 import { LeaderboardService } from 'src/leaderboard/leaderboard.service';
 import { MatchVerdict } from 'src/match/enums/match-verdict.enum';
 import { SubmissionService } from './submission.service';
+import * as cssBattleScoreUtil from '../challenge/utils/css-battle-score.util';
 
 describe('SubmissionService', () => {
   let service: SubmissionService;
@@ -98,5 +102,42 @@ describe('SubmissionService', () => {
       difficulty: ChallengeDifficulty.EASY,
       type: ChallengeType.QUIZ,
     });
+  });
+
+  it('should surface a clear error when Playwright Chromium is missing for CSS battle submissions', async () => {
+    jest
+      .spyOn(cssBattleScoreUtil, 'scoreCssBattleCase')
+      .mockRejectedValueOnce(
+        new Error(
+          "browserType.launch: Executable doesn't exist at /missing/chrome",
+        ),
+      );
+
+    challengeService.findOne.mockResolvedValue({
+      id: 5,
+      title: 'CSS Battle',
+      type: ChallengeType.CSS_BATTLE,
+      difficulty: ChallengeDifficulty.MEDIUM,
+      cases: [
+        {
+          inputs: [
+            { type: 'targetHtml', value: '<div></div>' },
+            { type: 'targetCss', value: 'div { width: 10px; height: 10px; }' },
+          ],
+          expectedOutput: '100',
+        },
+      ],
+    });
+
+    await expect(
+      service.createSubmission(
+        {
+          challengeId: 5,
+          language: 'css',
+          sourceCode: '<style>div { width: 10px; height: 10px; }</style><div></div>',
+        },
+        { id: 'user-1' } as never,
+      ),
+    ).rejects.toThrow(ServiceUnavailableException);
   });
 });

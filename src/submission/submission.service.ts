@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChallengeService } from '../challenge/challenge.service';
 import { ChallengeType } from '../challenge/enums/challenge-type.enums';
@@ -277,14 +281,32 @@ export class SubmissionService {
         continue;
       }
 
-      const score = await scoreCssBattleCase({
-        targetHtml,
-        targetCss,
-        submissionMarkup: sourceCode,
-        viewportWidth,
-        viewportHeight,
-        background,
-      });
+      let score: number;
+
+      try {
+        score = await scoreCssBattleCase({
+          targetHtml,
+          targetCss,
+          submissionMarkup: sourceCode,
+          viewportWidth,
+          viewportHeight,
+          background,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown rendering error';
+
+        if (message.includes("Executable doesn't exist")) {
+          throw new ServiceUnavailableException(
+            'CSS battle submissions are unavailable because the Playwright Chromium browser is not installed on the backend. Run `npx playwright install chromium` in `ByteBattleBackend`.',
+          );
+        }
+
+        throw new ServiceUnavailableException(
+          `CSS battle submission rendering failed: ${message}`,
+        );
+      }
+
       const passed = score >= requiredScore;
 
       results.push({
