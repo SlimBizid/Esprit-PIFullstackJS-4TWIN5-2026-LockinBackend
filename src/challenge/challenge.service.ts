@@ -16,6 +16,7 @@ import { ChallengeType } from './enums/challenge-type.enums';
 import { ChallengeDifficulty } from './enums/challenge-difficulty.enums';
 import { ChallengeTopic } from './enums/challenge-topic.enums';
 import { GeneratedChallengeDraftDto } from './dto/generated-challenge-draft.dto';
+import { Team } from 'src/team/entities/team.entity';
 
 @Injectable()
 export class ChallengeService {
@@ -31,7 +32,27 @@ export class ChallengeService {
   constructor(
     @InjectRepository(Challenge)
     private challengeRepository: Repository<Challenge>,
+    @InjectRepository(Team)
+    private teamRepository: Repository<Team>,
   ) {}
+
+  private async resolveTeams(teamIds: number[]): Promise<Team[]> {
+    if (teamIds.length === 0) {
+      return [];
+    }
+
+    const teams = await this.teamRepository.find({
+      where: teamIds.map((id) => ({ id })),
+    });
+
+    if (teams.length !== teamIds.length) {
+      const foundIds = new Set(teams.map((team) => team.id));
+      const missingId = teamIds.find((id) => !foundIds.has(id));
+      throw new NotFoundException(`Team with ID #${missingId} not found.`);
+    }
+
+    return teams;
+  }
 
   async findAll(queryDto: ChallengeQueryDto, role: UserType) {
     const {
@@ -90,6 +111,7 @@ export class ChallengeService {
       where: { id },
       relations: {
         achievements: true,
+        teams: true,
       },
       withDeleted: role === UserType.ADMIN,
     });
@@ -153,13 +175,17 @@ export class ChallengeService {
       );
     }
 
+    const teams = await this.resolveTeams(createDto.teamIds ?? []);
+
     const newChallenge = this.challengeRepository.create({
       ...createDto,
       acceptanceRate: createDto.acceptanceRate ?? 100,
+      teams,
     });
 
     try {
-      return await this.challengeRepository.save(newChallenge);
+      const savedChallenge = await this.challengeRepository.save(newChallenge);
+      return await this.findOne(savedChallenge.id, UserType.ADMIN);
     } catch {
       throw new InternalServerErrorException(
         `An unexpected error occurred while saving the challenge. `,
@@ -298,13 +324,17 @@ export class ChallengeService {
     const updatedChallenge = await this.challengeRepository.preload({
       id: id,
       ...updateDto,
+      ...(updateDto.teamIds !== undefined && {
+        teams: await this.resolveTeams(updateDto.teamIds),
+      }),
     });
 
     if (!updatedChallenge) {
       throw new NotFoundException(`Challenge #${id} could not be preloaded.`);
     }
 
-    return await this.challengeRepository.save(updatedChallenge);
+    await this.challengeRepository.save(updatedChallenge);
+    return await this.findOne(id, UserType.ADMIN);
   }
 
   async softDelete(id: number): Promise<void> {
