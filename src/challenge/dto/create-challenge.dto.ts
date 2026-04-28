@@ -10,6 +10,7 @@ import {
   ArrayMinSize,
   IsArray,
   ValidateNested,
+  IsInt,
 } from 'class-validator';
 import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
@@ -84,4 +85,10 @@ export class CreateChallengeDto {
   @Max(100)
   @IsOptional()
   acceptanceRate?: number;
+
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @IsOptional()
+  teamIds?: number[] = [];
 }

@@ -100,6 +100,7 @@ import { SearchIndexBootstrapService } from './common/search-index-bootstrap.ser
     }),
     TypeOrmModule.forFeature([
       Challenge,
+      Team,
       Match,
       MatchMessage,
       MatchSubmission,
