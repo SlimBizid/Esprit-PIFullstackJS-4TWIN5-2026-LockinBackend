@@ -88,6 +88,9 @@ export class ChallengeService {
   ): Promise<Challenge> {
     const challenge = await this.challengeRepository.findOne({
       where: { id },
+      relations: {
+        achievements: true,
+      },
       withDeleted: role === UserType.ADMIN,
     });
 

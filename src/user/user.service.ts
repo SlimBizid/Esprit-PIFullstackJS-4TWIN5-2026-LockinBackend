@@ -86,7 +86,12 @@ export class UserService {
     }
 
     const achievements = await this.achievementRepository.find({
-      relations: ['userAchievements', 'userAchievements.user', 'Reward'],
+      relations: [
+        'userAchievements',
+        'userAchievements.user',
+        'Reward',
+        'challenges',
+      ],
       order: { createdAt: 'ASC' },
     });
 
@@ -103,6 +108,12 @@ export class UserService {
         imageUrl: achievement.imageUrl,
         createdAt: achievement.createdAt,
         rewards: achievement.Reward ?? [],
+        challenges: (achievement.challenges ?? []).map((challenge) => ({
+          id: challenge.id,
+          title: challenge.title,
+          type: challenge.type,
+          difficulty: challenge.difficulty,
+        })),
         unlocked: !!userAchievement,
         unlockedAt: userAchievement?.unlockedAt ?? null,
       };
