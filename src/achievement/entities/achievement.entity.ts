@@ -1,8 +1,11 @@
 import { Cosmetic } from 'src/cosmetic/entities/cosmetic.entity';
+import { Challenge } from 'src/challenge/entities/challenge.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinTable,
+  ManyToMany,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -45,4 +48,12 @@ export class Achievement {
 
   @OneToMany(() => UserAchievement, (ua) => ua.achievement)
   userAchievements: UserAchievement[];
+
+  @ManyToMany(() => Challenge, (challenge) => challenge.achievements)
+  @JoinTable({
+    name: 'achievement_challenges',
+    joinColumn: { name: 'achievementId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'challengeId', referencedColumnName: 'id' },
+  })
+  challenges: Challenge[];
 }

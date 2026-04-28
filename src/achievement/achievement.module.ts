@@ -6,10 +6,11 @@ import { Achievement } from './entities/achievement.entity';
 import { UserAchievement } from './entities/userachievement.entity';
 import { StorageModule } from 'src/storage/storage.module';
 import { CosmeticModule } from 'src/cosmetic/cosmetic.module';
+import { Challenge } from 'src/challenge/entities/challenge.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Achievement, UserAchievement]),
+    TypeOrmModule.forFeature([Achievement, UserAchievement, Challenge]),
     StorageModule,
     CosmeticModule,
   ],

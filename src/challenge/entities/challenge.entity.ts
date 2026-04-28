@@ -11,6 +11,8 @@ import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
 import { ChallengeTopic } from '../enums/challenge-topic.enums';
 import { Exclude } from 'class-transformer';
+import { Achievement } from 'src/achievement/entities/achievement.entity';
+import { ManyToMany } from 'typeorm';
 
 @Entity('challenges')
 export class Challenge {
@@ -65,6 +67,9 @@ export class Challenge {
 
   @Column({ type: 'enum', enum: ChallengeTopic, array: true, default: [] })
   topics: ChallengeTopic[];
+
+  @ManyToMany(() => Achievement, (achievement) => achievement.challenges)
+  achievements: Achievement[];
 
   @CreateDateColumn()
   createdAt: Date;
