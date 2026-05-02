@@ -48,6 +48,7 @@ import { Achievement } from './achievement/entities/achievement.entity';
 import { UserAchievement } from './achievement/entities/userachievement.entity';
 import { StorageModule } from './storage/storage.module';
 import { UserCosmetic } from './user/entities/user-cosmetic.entity';
+import { isProductionEnvironment } from './common/utils/environment.util';
 
 @Module({
   imports: [
@@ -90,7 +91,7 @@ import { UserCosmetic } from './user/entities/user-cosmetic.entity';
         UserCosmetic,
       ],
       ssl:
-        process.env.ENV == 'prod'
+        isProductionEnvironment()
           ? {
               rejectUnauthorized: false,
             }
