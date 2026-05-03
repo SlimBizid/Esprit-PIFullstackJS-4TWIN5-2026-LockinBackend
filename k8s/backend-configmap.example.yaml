@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bytebattle-backend-config
+  namespace: bytebattle
+data:
+  PORT: "3000"
+  ENV: "prod"
+  FRONTEND_URL: "http://YOUR_WORKER_PUBLIC_IP:31555"
+  GOOGLE_AI_STUDIO_MODEL: "gemini-3-flash-preview"
+

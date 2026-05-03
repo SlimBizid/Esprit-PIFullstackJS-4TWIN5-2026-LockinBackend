@@ -16,6 +16,7 @@ import { Response, response } from 'express';
 import { LeaderboardService } from '../leaderboard/leaderboard.service';
 import { UserDTO } from './dto/user.dto';
 import { TokenBlacklistService } from './token-blacklist/token-blacklist.service';
+import { isProductionEnvironment } from '../common/utils/environment.util';
 
 @Injectable()
 export class AuthService {
@@ -55,14 +56,14 @@ export class AuthService {
 
     res.cookie('access_token', accessToken, {
       httpOnly: true,
-      secure: process.env.ENV === 'production',
+      secure: isProductionEnvironment(),
       sameSite: 'strict',
       maxAge: 1000 * 60 * 30,
     });
 
     res.cookie('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: process.env.ENV === 'production',
+      secure: isProductionEnvironment(),
       sameSite: 'strict',
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
