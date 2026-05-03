@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { LeaderboardService } from './leaderboard.service';
 import { LeaderboardEntry } from './entities/leaderboard.entity';
+import { UserChallengeReward } from './entities/user-challenge-reward.entity';
 import { User } from '../user/entities/user.entity';
 import { ChallengeDifficulty } from '../challenge/enums/challenge-difficulty.enums';
 import { ChallengeType } from '../challenge/enums/challenge-type.enums';
@@ -44,6 +45,12 @@ describe('LeaderboardService', () => {
     save: jest.fn(),
   };
 
+  const mockRewardRepo = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -55,6 +62,10 @@ describe('LeaderboardService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockUserRepo,
+        },
+        {
+          provide: getRepositoryToken(UserChallengeReward),
+          useValue: mockRewardRepo,
         },
       ],
     }).compile();
@@ -92,6 +103,9 @@ describe('LeaderboardService', () => {
 
       mockLeaderboardRepo.findOne.mockResolvedValue(entry);
       mockUserRepo.findOne.mockResolvedValue(user);
+      mockRewardRepo.findOne.mockResolvedValue(null);
+      mockRewardRepo.create.mockImplementation((value) => value);
+      mockRewardRepo.save.mockResolvedValue({} as never);
       mockLeaderboardRepo.save.mockResolvedValue(entry);
       mockUserRepo.save.mockResolvedValue(user);
 
@@ -113,6 +127,9 @@ describe('LeaderboardService', () => {
 
       mockLeaderboardRepo.findOne.mockResolvedValue(entry);
       mockUserRepo.findOne.mockResolvedValue(user);
+      mockRewardRepo.findOne.mockResolvedValue(null);
+      mockRewardRepo.create.mockImplementation((value) => value);
+      mockRewardRepo.save.mockResolvedValue({} as never);
       mockLeaderboardRepo.save.mockResolvedValue(entry);
       mockUserRepo.save.mockResolvedValue(user);
 
@@ -133,6 +150,9 @@ describe('LeaderboardService', () => {
 
       mockLeaderboardRepo.findOne.mockResolvedValue(entry);
       mockUserRepo.findOne.mockResolvedValue(user);
+      mockRewardRepo.findOne.mockResolvedValue(null);
+      mockRewardRepo.create.mockImplementation((value) => value);
+      mockRewardRepo.save.mockResolvedValue({} as never);
       mockLeaderboardRepo.save.mockResolvedValue(entry);
       mockUserRepo.save.mockResolvedValue(user);
 
@@ -150,6 +170,7 @@ describe('LeaderboardService', () => {
     it('throws NotFoundException if user or entry is missing', async () => {
       mockLeaderboardRepo.findOne.mockResolvedValue(null);
       mockUserRepo.findOne.mockResolvedValue(null);
+      mockRewardRepo.findOne.mockResolvedValue(null);
 
       await expect(
         service.awardChallenge({

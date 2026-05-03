@@ -3,6 +3,9 @@ import { UserService } from './user.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { Achievement } from '../achievement/entities/achievement.entity';
+import { UserCosmetic } from './entities/user-cosmetic.entity';
+import { Cosmetic } from '../cosmetic/entities/cosmetic.entity';
 
 describe('UserService', () => {
   let service: UserService;
@@ -10,6 +13,17 @@ describe('UserService', () => {
   const mockUserRepository = {
     save: jest.fn(),
     findOneBy: jest.fn(),
+  };
+  const mockAchievementRepository = {
+    find: jest.fn(),
+  };
+  const mockUserCosmeticRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+  };
+  const mockCosmeticRepository = {
+    findOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -19,6 +33,18 @@ describe('UserService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockUserRepository,
+        },
+        {
+          provide: getRepositoryToken(Achievement),
+          useValue: mockAchievementRepository,
+        },
+        {
+          provide: getRepositoryToken(UserCosmetic),
+          useValue: mockUserCosmeticRepository,
+        },
+        {
+          provide: getRepositoryToken(Cosmetic),
+          useValue: mockCosmeticRepository,
         },
       ],
     }).compile();
