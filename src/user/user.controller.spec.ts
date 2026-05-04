@@ -17,6 +17,7 @@ describe('UserController', () => {
           useValue: {
             findAll: jest.fn(),
             updateUserRole: jest.fn(),
+            changePassword: jest.fn(),
           },
         },
       ],
@@ -81,6 +82,26 @@ describe('UserController', () => {
         undefined,
         undefined,
       );
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should forward the authenticated user and payload to the service', async () => {
+      const mockReq = { user: { id: 'user-1' } };
+      const payload = {
+        currentPassword: 'oldpass123',
+        newPassword: 'newpass123',
+        confirmPassword: 'newpass123',
+      };
+
+      jest
+        .spyOn(service, 'changePassword')
+        .mockResolvedValue({ message: 'Password updated successfully' });
+
+      const result = await controller.changePassword(mockReq as any, payload);
+
+      expect(result).toEqual({ message: 'Password updated successfully' });
+      expect(service.changePassword).toHaveBeenCalledWith(mockReq.user, payload);
     });
   });
 });

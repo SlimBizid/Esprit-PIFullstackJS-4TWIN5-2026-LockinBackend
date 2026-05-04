@@ -19,6 +19,7 @@ import { UserService } from './user.service';
 import { UserType } from './enums/user-type.enum';
 import { type UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
@@ -89,6 +90,15 @@ export class UserController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.userService.updateUser(req.user, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/password')
+  async changePassword(
+    @Request() req: Request & { user: User },
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(req.user, changePasswordDto);
   }
 
   @UseGuards(JwtAuthGuard)

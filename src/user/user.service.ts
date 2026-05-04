@@ -14,6 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Achievement } from 'src/achievement/entities/achievement.entity';
 import { UserCosmetic } from './entities/user-cosmetic.entity';
 import { Cosmetic } from 'src/cosmetic/entities/cosmetic.entity';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class UserService {
@@ -57,6 +58,54 @@ export class UserService {
     } else {
       throw new BadRequestException('Invalid password');
     }
+  }
+
+  async changePassword(
+    user: User,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    const persistedUser = await this.findById(user.id);
+
+    if (!persistedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (persistedUser.githubHandle && !persistedUser.password) {
+      throw new BadRequestException(
+        'GitHub-only accounts cannot update password here',
+      );
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('New passwords do not match');
+    }
+
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      persistedUser.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const isSamePassword = await bcrypt.compare(
+      newPassword,
+      persistedUser.password,
+    );
+
+    if (isSamePassword) {
+      throw new BadRequestException(
+        'New password must be different from your current password',
+      );
+    }
+
+    persistedUser.password = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.save(persistedUser);
+
+    return { message: 'Password updated successfully' };
   }
   async findById(id: string): Promise<User | null> {
     return await this.userRepository.findOne({
