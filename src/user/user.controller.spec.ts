@@ -101,7 +101,10 @@ describe('UserController', () => {
       const result = await controller.changePassword(mockReq as any, payload);
 
       expect(result).toEqual({ message: 'Password updated successfully' });
-      expect(service.changePassword).toHaveBeenCalledWith(mockReq.user, payload);
+      expect(service.changePassword).toHaveBeenCalledWith(
+        mockReq.user,
+        payload,
+      );
     });
   });
 });

@@ -69,11 +69,10 @@ describe('ReviewService', () => {
     challengeSubmissionRepository.exist.mockResolvedValue(false);
 
     await expect(
-      service.createChallengeReview(
-        8,
-        { title: 'Title', content: 'Content' },
-        { id: 'user-1', type: UserType.PLAYER } as never,
-      ),
+      service.createChallengeReview(8, { title: 'Title', content: 'Content' }, {
+        id: 'user-1',
+        type: UserType.PLAYER,
+      } as never),
     ).rejects.toThrow(ForbiddenException);
   });
 
@@ -82,11 +81,10 @@ describe('ReviewService', () => {
     reviewRepository.exist.mockResolvedValue(true);
 
     await expect(
-      service.createChallengeReview(
-        8,
-        { title: 'Title', content: 'Content' },
-        { id: 'user-1', type: UserType.PLAYER } as never,
-      ),
+      service.createChallengeReview(8, { title: 'Title', content: 'Content' }, {
+        id: 'user-1',
+        type: UserType.PLAYER,
+      } as never),
     ).rejects.toThrow(ConflictException);
   });
 });
