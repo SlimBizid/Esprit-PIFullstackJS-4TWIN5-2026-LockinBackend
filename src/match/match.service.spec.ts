@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
 import { ChallengeService } from 'src/challenge/challenge.service';
 import { CodeExecutionService } from 'src/code-execution/code-execution.service';

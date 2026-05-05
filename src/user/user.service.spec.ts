@@ -2,11 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import {
-  BadRequestException,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { Achievement } from '../achievement/entities/achievement.entity';
 import { UserCosmetic } from './entities/user-cosmetic.entity';
@@ -171,14 +167,11 @@ describe('UserService', () => {
         password: 'new-hash',
       });
 
-      const result = await service.changePassword(
-        { id: 'user-1' } as User,
-        {
-          currentPassword: 'currentpass123',
-          newPassword: 'newpass123',
-          confirmPassword: 'newpass123',
-        },
-      );
+      const result = await service.changePassword({ id: 'user-1' } as User, {
+        currentPassword: 'currentpass123',
+        newPassword: 'newpass123',
+        confirmPassword: 'newpass123',
+      });
 
       expect(result).toEqual({ message: 'Password updated successfully' });
       expect(mockUserRepository.save).toHaveBeenCalledWith(
@@ -198,17 +191,12 @@ describe('UserService', () => {
       });
 
       await expect(
-        service.changePassword(
-          { id: 'user-1' } as User,
-          {
-            currentPassword: 'currentpass123',
-            newPassword: 'newpass123',
-            confirmPassword: 'different123',
-          },
-        ),
-      ).rejects.toThrow(
-        new BadRequestException('New passwords do not match'),
-      );
+        service.changePassword({ id: 'user-1' } as User, {
+          currentPassword: 'currentpass123',
+          newPassword: 'newpass123',
+          confirmPassword: 'different123',
+        }),
+      ).rejects.toThrow(new BadRequestException('New passwords do not match'));
     });
 
     it('should reject GitHub-only accounts', async () => {
@@ -219,16 +207,15 @@ describe('UserService', () => {
       });
 
       await expect(
-        service.changePassword(
-          { id: 'user-1' } as User,
-          {
-            currentPassword: 'currentpass123',
-            newPassword: 'newpass123',
-            confirmPassword: 'newpass123',
-          },
-        ),
+        service.changePassword({ id: 'user-1' } as User, {
+          currentPassword: 'currentpass123',
+          newPassword: 'newpass123',
+          confirmPassword: 'newpass123',
+        }),
       ).rejects.toThrow(
-        new BadRequestException('GitHub-only accounts cannot update password here'),
+        new BadRequestException(
+          'GitHub-only accounts cannot update password here',
+        ),
       );
     });
   });

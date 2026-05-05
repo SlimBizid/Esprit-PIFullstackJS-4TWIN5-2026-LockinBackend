@@ -91,12 +91,11 @@ import { SearchIndexBootstrapService } from './common/search-index-bootstrap.ser
         UserAchievement,
         UserCosmetic,
       ],
-      ssl:
-        isProductionEnvironment()
-          ? {
-              rejectUnauthorized: false,
-            }
-          : false,
+      ssl: isProductionEnvironment()
+        ? {
+            rejectUnauthorized: false,
+          }
+        : false,
       synchronize: true,
     }),
     TypeOrmModule.forFeature([

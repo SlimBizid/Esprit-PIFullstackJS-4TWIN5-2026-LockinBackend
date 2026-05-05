@@ -134,7 +134,8 @@ describe('SubmissionService', () => {
         {
           challengeId: 5,
           language: 'css',
-          sourceCode: '<style>div { width: 10px; height: 10px; }</style><div></div>',
+          sourceCode:
+            '<style>div { width: 10px; height: 10px; }</style><div></div>',
         },
         { id: 'user-1' } as never,
       ),

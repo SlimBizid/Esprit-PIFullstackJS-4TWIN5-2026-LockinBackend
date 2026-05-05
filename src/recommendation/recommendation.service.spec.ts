@@ -4,11 +4,7 @@ describe('RecommendationService', () => {
   let service: RecommendationService;
 
   beforeEach(() => {
-    service = new RecommendationService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
+    service = new RecommendationService({} as never, {} as never, {} as never);
   });
 
   it('should be defined', () => {

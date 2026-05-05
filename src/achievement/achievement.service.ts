@@ -29,7 +29,9 @@ export class AchievementService {
     private cosmeticService: CosmeticService,
   ) {}
 
-  private async resolveChallenges(challengeIds: number[]): Promise<Challenge[]> {
+  private async resolveChallenges(
+    challengeIds: number[],
+  ): Promise<Challenge[]> {
     if (challengeIds.length === 0) {
       return [];
     }
@@ -170,8 +172,11 @@ export class AchievementService {
       throw new NotFoundException('Achievement with that id not found');
     }
 
-    const { cosmeticIds: _cosmeticIds, challengeIds, ...rest } =
-      updateAchievementDto;
+    const {
+      cosmeticIds: _cosmeticIds,
+      challengeIds,
+      ...rest
+    } = updateAchievementDto;
 
     Object.assign(achievement, rest);
 
