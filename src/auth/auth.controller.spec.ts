@@ -12,7 +12,13 @@ describe('AuthController', () => {
       providers: [
         {
           provide: AuthService,
-          useValue: { SignUp: jest.fn() },
+          useValue: {
+            SignUp: jest.fn(),
+            forgotPassword: jest.fn(),
+            resetPassword: jest.fn(),
+            logout: jest.fn(),
+            refresh: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -72,5 +78,59 @@ describe('AuthController', () => {
         githubHandle: 'sl',
       }),
     ).rejects.toThrow('Username already exists');
+  });
+
+  it('forwards forgot-password to the service', async () => {
+    authService.forgotPassword.mockResolvedValue({
+      message: 'If email exists, password reset link will be sent',
+    });
+
+    await expect(
+      controller.forgotPassword({ email: 'ram@example.com' }),
+    ).resolves.toEqual({
+      message: 'If email exists, password reset link will be sent',
+    });
+  });
+
+  it('forwards reset-password to the service', async () => {
+    authService.resetPassword.mockResolvedValue({
+      message: 'Password reset successfully',
+    });
+
+    await expect(
+      controller.resetPassword({
+        token: 'token-1',
+        newPassword: 'secret123',
+      }),
+    ).resolves.toEqual({
+      message: 'Password reset successfully',
+    });
+  });
+
+  it('logs out and returns ok', async () => {
+    const res = {} as any;
+    authService.logout.mockResolvedValue(undefined);
+
+    await expect(
+      controller.logout(
+        { cookies: { refresh_token: 'refresh-1' } } as any,
+        res,
+      ),
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it('forwards refresh calls to the service', async () => {
+    const dto = { id: 'user-1', username: 'ram' } as any;
+    authService.refresh.mockResolvedValue(dto);
+
+    await expect(
+      controller.refresh(
+        {
+          user: { id: 'user-1' },
+          cookies: { refresh_token: 'refresh-1' },
+        } as any,
+        {} as any,
+      ),
+    ).resolves.toBe(dto);
   });
 });

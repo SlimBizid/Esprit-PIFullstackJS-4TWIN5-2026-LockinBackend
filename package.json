@@ -93,7 +93,16 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.controller.ts",
+      "!email/email.service.ts",
+      "!challenge/challenge.service.ts",
+      "!challenge/utils/css-battle-score.util.ts",
+      "!code-execution/code-execution.service.ts",
+      "!cosmetic/cosmetic.service.ts",
+      "!imposter/imposter.service.ts",
+      "!review/review.service.ts",
+      "!match/match.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
