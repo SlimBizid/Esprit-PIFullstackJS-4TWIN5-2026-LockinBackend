@@ -11,6 +11,9 @@ import { ChallengeType } from '../enums/challenge-type.enums';
 import { ChallengeDifficulty } from '../enums/challenge-difficulty.enums';
 import { ChallengeTopic } from '../enums/challenge-topic.enums';
 import { Exclude } from 'class-transformer';
+import { Achievement } from 'src/achievement/entities/achievement.entity';
+import { ManyToMany, JoinTable } from 'typeorm';
+import { Team } from 'src/team/entities/team.entity';
 
 @Entity('challenges')
 export class Challenge {
@@ -65,6 +68,17 @@ export class Challenge {
 
   @Column({ type: 'enum', enum: ChallengeTopic, array: true, default: [] })
   topics: ChallengeTopic[];
+
+  @ManyToMany(() => Achievement, (achievement) => achievement.challenges)
+  achievements: Achievement[];
+
+  @ManyToMany(() => Team, (team) => team.challenges)
+  @JoinTable({
+    name: 'challenge_teams',
+    joinColumn: { name: 'challengeId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'teamId', referencedColumnName: 'id' },
+  })
+  teams: Team[];
 
   @CreateDateColumn()
   createdAt: Date;

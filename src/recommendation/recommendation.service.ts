@@ -20,10 +20,7 @@ export class RecommendationService {
     private readonly submissionRepository: Repository<ChallengeSubmission>,
   ) {}
 
-  async listForUser(
-    user: User,
-    limit = 5,
-  ): Promise<RecommendationResponseDto> {
+  async listForUser(user: User, limit = 5): Promise<RecommendationResponseDto> {
     const safeLimit = Math.min(Math.max(limit, 1), 10);
     const storedRecommendations = await this.recommendationRepository.find({
       where: { userId: user.id },
@@ -36,10 +33,13 @@ export class RecommendationService {
       return {
         data: storedRecommendations
           .filter((recommendation) => recommendation.challenge)
-          .map((recommendation) => this.serializeRecommendation(recommendation)),
+          .map((recommendation) =>
+            this.serializeRecommendation(recommendation),
+          ),
         meta: {
           modelVersion: storedRecommendations[0]?.modelVersion ?? 'unknown',
-          generatedAt: storedRecommendations[0]?.generatedAt?.toISOString() ?? null,
+          generatedAt:
+            storedRecommendations[0]?.generatedAt?.toISOString() ?? null,
         },
       };
     }
@@ -56,7 +56,9 @@ export class RecommendationService {
       where: { userId },
     });
 
-    const excludedIds = attemptedChallengeIds.map((submission) => submission.challengeId);
+    const excludedIds = attemptedChallengeIds.map(
+      (submission) => submission.challengeId,
+    );
     const where = excludedIds.length
       ? {
           id: Not(In(excludedIds)),

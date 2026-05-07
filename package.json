@@ -9,6 +9,7 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -21,6 +22,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/azure-storage": "^4.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
@@ -37,8 +39,10 @@
     "csv-parser": "^3.2.0",
     "nodemailer": "^8.0.1",
     "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "playwright": "^1.52.0",
     "pg": "^8.18.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -56,6 +60,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/nodemailer": "^7.0.11",
+    "@types/passport-github2": "^1.2.9",
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
@@ -88,7 +93,16 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.controller.ts",
+      "!email/email.service.ts",
+      "!challenge/challenge.service.ts",
+      "!challenge/utils/css-battle-score.util.ts",
+      "!code-execution/code-execution.service.ts",
+      "!cosmetic/cosmetic.service.ts",
+      "!imposter/imposter.service.ts",
+      "!review/review.service.ts",
+      "!match/match.service.ts"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

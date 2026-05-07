@@ -8,6 +8,7 @@ import {
   NotFoundException,
   Param,
   Patch,
+  Post,
   Query,
   Request,
   UseGuards,
@@ -18,6 +19,7 @@ import { UserService } from './user.service';
 import { UserType } from './enums/user-type.enum';
 import { type UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('users')
@@ -41,10 +43,13 @@ export class UserController {
     }
 
     return {
+      id: user.id,
       username: user.username,
       email: user.email,
       type: user.type,
       githubHandle: user.githubHandle,
+      coins: user.coins,
+      xp: user.xp,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -56,12 +61,44 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post(':id/cosmetics/:cosmeticId')
+  async grantCosmetic(
+    @Param('id') id: string,
+    @Param('cosmeticId') cosmeticId: string,
+    @Request() req: Request & { user: User },
+  ) {
+    if (req.user.type !== UserType.ADMIN) {
+      throw new ForbiddenException('Only admin can grant cosmetics');
+    }
+
+    return this.userService.grantCosmeticToUser(req.user, id, cosmeticId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/equipped-cosmetics/:cosmeticId')
+  async equipCosmetic(
+    @Param('cosmeticId') cosmeticId: string,
+    @Request() req: Request & { user: User },
+  ) {
+    return this.userService.equipCosmetic(req.user, cosmeticId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch('edit')
   async editProfile(
     @Request() req: Request & { user: User },
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.userService.updateUser(req.user, updateUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/password')
+  async changePassword(
+    @Request() req: Request & { user: User },
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(req.user, changePasswordDto);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -96,7 +133,10 @@ export class UserController {
 
     return this.userService.updateUserRole(id, updated_role);
   }
-
+  @Get(':username/achievements')
+  async getUserAchievements(@Param('username') username: string) {
+    return this.userService.getAllAchievementsWithStatus(username);
+  }
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deleteUser(@Param('id') id: string, @Request() req) {

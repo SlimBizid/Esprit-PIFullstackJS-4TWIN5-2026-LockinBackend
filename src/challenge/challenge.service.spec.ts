@@ -8,6 +8,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { Team } from 'src/team/entities/team.entity';
 
 describe('ChallengeService', () => {
   let service: ChallengeService;
@@ -22,6 +23,10 @@ describe('ChallengeService', () => {
     restore: jest.fn(),
   };
 
+  const mockTeamRepository = {
+    find: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -29,6 +34,10 @@ describe('ChallengeService', () => {
         {
           provide: getRepositoryToken(Challenge),
           useValue: mockRepository,
+        },
+        {
+          provide: getRepositoryToken(Team),
+          useValue: mockTeamRepository,
         },
       ],
     }).compile();
@@ -77,12 +86,46 @@ describe('ChallengeService', () => {
       const newChallenge = { ...createDto, id: 1 };
 
       mockRepository.findOne.mockResolvedValue(null);
+      mockTeamRepository.find.mockResolvedValue([]);
       mockRepository.create.mockReturnValue(newChallenge);
       mockRepository.save.mockResolvedValue(newChallenge);
+      mockRepository.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        ...newChallenge,
+        achievements: [],
+        teams: [],
+      });
 
       const result = await service.create(createDto as any);
-      expect(result).toEqual(newChallenge);
+      expect(result).toEqual({
+        ...newChallenge,
+        achievements: [],
+        teams: [],
+      });
       expect(mockRepository.save).toHaveBeenCalledWith(newChallenge);
+    });
+
+    it('should link teams when teamIds are provided', async () => {
+      const linkedTeams = [{ id: 2, name: 'Alpha Squad' }];
+      const createDto = { title: 'Team Challenge', teamIds: [2] };
+
+      mockRepository.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        id: 10,
+        title: 'Team Challenge',
+        achievements: [],
+        teams: linkedTeams,
+      });
+      mockTeamRepository.find.mockResolvedValue(linkedTeams);
+      mockRepository.create.mockImplementation((value) => value);
+      mockRepository.save.mockResolvedValue({ id: 10 });
+
+      const result = await service.create(createDto as any);
+
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teams: linkedTeams,
+        }),
+      );
+      expect(result.teams).toEqual(linkedTeams);
     });
 
     it('should throw ConflictException if title exists', async () => {
@@ -94,6 +137,7 @@ describe('ChallengeService', () => {
 
     it('should throw InternalServerErrorException on save failure', async () => {
       mockRepository.findOne.mockResolvedValue(null);
+      mockTeamRepository.find.mockResolvedValue([]);
       mockRepository.create.mockReturnValue({});
       mockRepository.save.mockRejectedValue(new Error('DB Fail'));
 
@@ -112,6 +156,12 @@ describe('ChallengeService', () => {
       mockRepository.findOne.mockResolvedValueOnce(null);
       mockRepository.preload.mockResolvedValue({ ...existing, ...updateDto });
       mockRepository.save.mockResolvedValue({ ...existing, ...updateDto });
+      mockRepository.findOne.mockResolvedValueOnce({
+        ...existing,
+        ...updateDto,
+        achievements: [],
+        teams: [],
+      });
 
       const result = await service.update(1, updateDto as any);
       expect(result.title).toBe('New');

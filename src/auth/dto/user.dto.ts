@@ -11,6 +11,8 @@ export type UserDTO = {
 
   type: UserType;
 
+  coins: number;
+
   createdAt: Date;
 
   updatedAt: Date;

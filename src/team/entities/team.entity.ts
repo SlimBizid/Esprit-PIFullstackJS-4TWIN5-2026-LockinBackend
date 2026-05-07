@@ -11,6 +11,7 @@ import {
   JoinTable,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
+import { Challenge } from 'src/challenge/entities/challenge.entity';
 
 @Entity('teams')
 export class Team {
@@ -45,4 +46,7 @@ export class Team {
     default: 'PENDING',
   })
   status: 'PENDING' | 'ACTIVE';
+
+  @ManyToMany(() => Challenge, (challenge) => challenge.teams)
+  challenges: Challenge[];
 }

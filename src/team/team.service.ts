@@ -39,14 +39,14 @@ export class TeamService {
 
   // FIND ALL TEAMS
   async findAll(): Promise<Team[]> {
-    return this.teamRepository.find({ relations: ['users'] });
+    return this.teamRepository.find({ relations: ['users', 'challenges'] });
   }
 
   // FIND ONE TEAM
   async findOne(id: number): Promise<Team> {
     const team = await this.teamRepository.findOne({
       where: { id },
-      relations: ['users'],
+      relations: ['users', 'challenges'],
     });
     if (!team) throw new NotFoundException('Team not found');
     return team;
@@ -154,6 +154,7 @@ export class TeamService {
     return this.teamRepository
       .createQueryBuilder('team')
       .leftJoinAndSelect('team.users', 'user')
+      .leftJoinAndSelect('team.challenges', 'challenge')
       .where('user.id = :userId', { userId })
       .orWhere('team.leaderId = :userId', { userId })
       .getMany();

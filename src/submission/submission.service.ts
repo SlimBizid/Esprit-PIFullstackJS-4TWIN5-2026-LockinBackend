@@ -1,11 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChallengeService } from 'src/challenge/challenge.service';
-import { ChallengeType } from 'src/challenge/enums/challenge-type.enums';
-import { evaluateQuizAnswers } from 'src/challenge/utils/evaluate-quiz.util';
-import { CodeExecutionService } from 'src/code-execution/code-execution.service';
-import { MatchVerdict } from 'src/match/enums/match-verdict.enum';
-import { User } from 'src/user/entities/user.entity';
+import { ChallengeService } from '../challenge/challenge.service';
+import { ChallengeType } from '../challenge/enums/challenge-type.enums';
+import { evaluateQuizAnswers } from '../challenge/utils/evaluate-quiz.util';
+import { scoreCssBattleCase } from '../challenge/utils/css-battle-score.util';
+import { CodeExecutionService } from '../code-execution/code-execution.service';
+import { MatchVerdict } from '../match/enums/match-verdict.enum';
+import { User } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
 
 import { CreateSubmissionDto } from './dto/create-submission.dto';
@@ -26,16 +31,25 @@ export class SubmissionService {
   async createSubmission(dto: CreateSubmissionDto, user: User) {
     const challenge = await this.challengeService.findOne(dto.challengeId);
 
-    if (![ChallengeType.SOLO, ChallengeType.QUIZ].includes(challenge.type)) {
+    if (
+      ![
+        ChallengeType.SOLO,
+        ChallengeType.QUIZ,
+        ChallengeType.CSS_BATTLE,
+      ].includes(challenge.type)
+    ) {
       throw new BadRequestException(
         'Only solo challenge modes can be submitted through this endpoint.',
       );
     }
 
     const isQuizChallenge = challenge.type === ChallengeType.QUIZ;
+    const isCssBattleChallenge = challenge.type === ChallengeType.CSS_BATTLE;
     const evaluation = isQuizChallenge
       ? this.evaluateQuizSubmission(challenge.quizQuestions, dto.answers)
-      : await this.evaluateCodeSubmission(dto);
+      : isCssBattleChallenge
+        ? await this.evaluateCssBattleSubmission(challenge, dto.sourceCode)
+        : await this.evaluateCodeSubmission(dto);
 
     const submission = this.submissionRepository.create({
       challengeId: challenge.id,
@@ -120,7 +134,9 @@ export class SubmissionService {
         | 'cpp',
       sourceCode: dto.sourceCode,
     });
-    const passedCount = execution.results.filter((result) => result.passed).length;
+    const passedCount = execution.results.filter(
+      (result) => result.passed,
+    ).length;
     const totalCount = execution.results.length;
 
     return {
@@ -148,7 +164,9 @@ export class SubmissionService {
     }
 
     if (!answers || Object.keys(answers).length === 0) {
-      throw new BadRequestException('Select at least one answer before submitting.');
+      throw new BadRequestException(
+        'Select at least one answer before submitting.',
+      );
     }
 
     return evaluateQuizAnswers(questions, answers);
@@ -199,6 +217,115 @@ export class SubmissionService {
       totalCount: submission.totalCount,
       results: submission.results,
       createdAt: submission.createdAt,
+    };
+  }
+
+  private async evaluateCssBattleSubmission(
+    challenge: {
+      cases: Array<{
+        expectedOutput: string;
+        inputs: Array<{ type: string; value: string }>;
+      }>;
+    },
+    sourceCode?: string,
+  ) {
+    if (!sourceCode || sourceCode.trim().length === 0) {
+      throw new BadRequestException(
+        'CSS battle challenges require HTML/CSS source code.',
+      );
+    }
+
+    if (challenge.cases.length === 0) {
+      throw new BadRequestException(
+        'This CSS battle challenge does not have any cases configured.',
+      );
+    }
+
+    const results = [] as Array<{
+      passed: boolean;
+      actual: string;
+      expected: string;
+      runtime: string;
+      memoryKb: number | null;
+      status?: string;
+    }>;
+
+    const getInputValue = (
+      inputs: Array<{ type: string; value: string }>,
+      type: string,
+    ) => inputs.find((input) => input.type === type)?.value ?? '';
+
+    for (const testCase of challenge.cases) {
+      const targetHtml = getInputValue(testCase.inputs, 'targetHtml');
+      const targetCss = getInputValue(testCase.inputs, 'targetCss');
+      const background =
+        getInputValue(testCase.inputs, 'background') || '#ffffff';
+      const viewportWidth = Number(
+        getInputValue(testCase.inputs, 'viewportWidth'),
+      );
+      const viewportHeight = Number(
+        getInputValue(testCase.inputs, 'viewportHeight'),
+      );
+      const threshold = Number(testCase.expectedOutput);
+      const requiredScore = Number.isFinite(threshold) ? threshold : 100;
+
+      if (!targetHtml.trim() || !targetCss.trim()) {
+        results.push({
+          passed: false,
+          actual: '0.00%',
+          expected: `${requiredScore.toFixed(2)}%`,
+          runtime: '0',
+          memoryKb: null,
+          status: 'Missing target HTML/CSS.',
+        });
+        continue;
+      }
+
+      let score: number;
+
+      try {
+        score = await scoreCssBattleCase({
+          targetHtml,
+          targetCss,
+          submissionMarkup: sourceCode,
+          viewportWidth,
+          viewportHeight,
+          background,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown rendering error';
+
+        if (message.includes("Executable doesn't exist")) {
+          throw new ServiceUnavailableException(
+            'CSS battle submissions are unavailable because the Playwright Chromium browser is not installed on the backend. Run `npx playwright install chromium` in `ByteBattleBackend`.',
+          );
+        }
+
+        throw new ServiceUnavailableException(
+          `CSS battle submission rendering failed: ${message}`,
+        );
+      }
+
+      const passed = score >= requiredScore;
+
+      results.push({
+        passed,
+        actual: `${score.toFixed(2)}%`,
+        expected: `${requiredScore.toFixed(2)}%`,
+        runtime: '0',
+        memoryKb: null,
+        status: `Similarity ${score.toFixed(2)}%`,
+      });
+    }
+    const passedCount = results.filter((result) => result.passed).length;
+    const totalCount = results.length;
+
+    return {
+      results,
+      passedCount,
+      totalCount,
+      verdict: this.getVerdict(results, passedCount, totalCount),
     };
   }
 }

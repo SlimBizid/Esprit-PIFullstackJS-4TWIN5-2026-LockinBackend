@@ -57,6 +57,12 @@ describe('LeaderboardService', () => {
     save: jest.fn(),
   };
 
+  const mockRewardRepo = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
   beforeEach(async () => {
     mockRewardRepo.create.mockImplementation((dto) => dto);
 
@@ -74,6 +80,10 @@ describe('LeaderboardService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockUserRepo,
+        },
+        {
+          provide: getRepositoryToken(UserChallengeReward),
+          useValue: mockRewardRepo,
         },
       ],
     }).compile();
@@ -148,6 +158,9 @@ describe('LeaderboardService', () => {
 
       mockLeaderboardRepo.findOne.mockResolvedValue(entry);
       mockUserRepo.findOne.mockResolvedValue(user);
+      mockRewardRepo.findOne.mockResolvedValue(null);
+      mockRewardRepo.create.mockImplementation((value) => value);
+      mockRewardRepo.save.mockResolvedValue({} as never);
       mockLeaderboardRepo.save.mockResolvedValue(entry);
       mockUserRepo.save.mockResolvedValue(user);
 
@@ -168,6 +181,9 @@ describe('LeaderboardService', () => {
 
       mockLeaderboardRepo.findOne.mockResolvedValue(entry);
       mockUserRepo.findOne.mockResolvedValue(user);
+      mockRewardRepo.findOne.mockResolvedValue(null);
+      mockRewardRepo.create.mockImplementation((value) => value);
+      mockRewardRepo.save.mockResolvedValue({} as never);
       mockLeaderboardRepo.save.mockResolvedValue(entry);
       mockUserRepo.save.mockResolvedValue(user);
 
@@ -186,6 +202,7 @@ describe('LeaderboardService', () => {
       mockRewardRepo.findOne.mockResolvedValue(null);
       mockLeaderboardRepo.findOne.mockResolvedValue(null);
       mockUserRepo.findOne.mockResolvedValue(null);
+      mockRewardRepo.findOne.mockResolvedValue(null);
 
       await expect(
         service.awardChallenge({

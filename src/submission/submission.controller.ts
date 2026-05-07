@@ -7,8 +7,8 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { User } from 'src/user/entities/user.entity';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { User } from '../user/entities/user.entity';
 
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { ListMySubmissionsDto } from './dto/list-my-submissions.dto';

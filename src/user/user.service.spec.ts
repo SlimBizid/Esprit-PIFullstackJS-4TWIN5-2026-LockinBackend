@@ -2,7 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { Achievement } from '../achievement/entities/achievement.entity';
+import { UserCosmetic } from './entities/user-cosmetic.entity';
+import { Cosmetic } from '../cosmetic/entities/cosmetic.entity';
 
 describe('UserService', () => {
   let service: UserService;
@@ -10,6 +18,19 @@ describe('UserService', () => {
   const mockUserRepository = {
     save: jest.fn(),
     findOneBy: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+  };
+  const mockAchievementRepository = {
+    find: jest.fn(),
+  };
+  const mockUserCosmeticRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+  };
+  const mockCosmeticRepository = {
+    findOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -19,6 +40,18 @@ describe('UserService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockUserRepository,
+        },
+        {
+          provide: getRepositoryToken(Achievement),
+          useValue: mockAchievementRepository,
+        },
+        {
+          provide: getRepositoryToken(UserCosmetic),
+          useValue: mockUserCosmeticRepository,
+        },
+        {
+          provide: getRepositoryToken(Cosmetic),
+          useValue: mockCosmeticRepository,
         },
       ],
     }).compile();
@@ -120,6 +153,249 @@ describe('UserService', () => {
           githubHandle: 'myhandle',
         }),
       );
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should update the password when the current password is valid', async () => {
+      const hashedPassword = await bcrypt.hash('currentpass123', 10);
+      const persistedUser = {
+        id: 'user-1',
+        password: hashedPassword,
+        githubHandle: null,
+      };
+
+      mockUserRepository.findOne.mockResolvedValue(persistedUser);
+      mockUserRepository.save.mockResolvedValue({
+        ...persistedUser,
+        password: 'new-hash',
+      });
+
+      const result = await service.changePassword(
+        { id: 'user-1' } as User,
+        {
+          currentPassword: 'currentpass123',
+          newPassword: 'newpass123',
+          confirmPassword: 'newpass123',
+        },
+      );
+
+      expect(result).toEqual({ message: 'Password updated successfully' });
+      expect(mockUserRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'user-1',
+          password: expect.not.stringMatching(/^currentpass123$/),
+        }),
+      );
+    });
+
+    it('should reject mismatched password confirmation', async () => {
+      const hashedPassword = await bcrypt.hash('currentpass123', 10);
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 'user-1',
+        password: hashedPassword,
+        githubHandle: null,
+      });
+
+      await expect(
+        service.changePassword(
+          { id: 'user-1' } as User,
+          {
+            currentPassword: 'currentpass123',
+            newPassword: 'newpass123',
+            confirmPassword: 'different123',
+          },
+        ),
+      ).rejects.toThrow(
+        new BadRequestException('New passwords do not match'),
+      );
+    });
+
+    it('should reject GitHub-only accounts', async () => {
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 'user-1',
+        password: null,
+        githubHandle: 'octocat',
+      });
+
+      await expect(
+        service.changePassword(
+          { id: 'user-1' } as User,
+          {
+            currentPassword: 'currentpass123',
+            newPassword: 'newpass123',
+            confirmPassword: 'newpass123',
+          },
+        ),
+      ).rejects.toThrow(
+        new BadRequestException('GitHub-only accounts cannot update password here'),
+      );
+    });
+
+    it('should reject unknown users during password change', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.changePassword(
+          { id: 'missing-user' } as User,
+          {
+            currentPassword: 'currentpass123',
+            newPassword: 'newpass123',
+            confirmPassword: 'newpass123',
+          },
+        ),
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should reject an incorrect current password', async () => {
+      const hashedPassword = await bcrypt.hash('correctpass123', 10);
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 'user-1',
+        password: hashedPassword,
+        githubHandle: null,
+      });
+
+      await expect(
+        service.changePassword(
+          { id: 'user-1' } as User,
+          {
+            currentPassword: 'wrongpass123',
+            newPassword: 'newpass123',
+            confirmPassword: 'newpass123',
+          },
+        ),
+      ).rejects.toThrow(
+        new BadRequestException('Current password is incorrect'),
+      );
+    });
+
+    it('should reject reusing the same password', async () => {
+      const hashedPassword = await bcrypt.hash('samepass123', 10);
+      mockUserRepository.findOne.mockResolvedValue({
+        id: 'user-1',
+        password: hashedPassword,
+        githubHandle: null,
+      });
+
+      await expect(
+        service.changePassword(
+          { id: 'user-1' } as User,
+          {
+            currentPassword: 'samepass123',
+            newPassword: 'samepass123',
+            confirmPassword: 'samepass123',
+          },
+        ),
+      ).rejects.toThrow(
+        new BadRequestException(
+          'New password must be different from your current password',
+        ),
+      );
+    });
+  });
+
+  describe('updateUser', () => {
+    it('updates the user when the password matches and username is available', async () => {
+      const hashedPassword = await bcrypt.hash('secret123', 10);
+      jest.spyOn(service, 'findUsernameExists').mockResolvedValue(false);
+
+      const result = await service.updateUser(
+        {
+          id: 'user-1',
+          username: 'old-name',
+          password: hashedPassword,
+        } as User,
+        {
+          username: 'new-name',
+          email: 'new@example.com',
+          githubHandle: 'octocat',
+          password: 'secret123',
+        } as any,
+      );
+
+      expect(result).toBe('User updated');
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          username: 'new-name',
+          email: 'new@example.com',
+          githubHandle: 'octocat',
+          password: expect.not.stringMatching(/^secret123$/),
+        }),
+      );
+    });
+
+    it('rejects taken usernames when they differ from the current username', async () => {
+      jest.spyOn(service, 'findUsernameExists').mockResolvedValue(true);
+
+      await expect(
+        service.updateUser(
+          {
+            id: 'user-1',
+            username: 'old-name',
+            password: 'hashed',
+          } as User,
+          {
+            username: 'taken-name',
+            email: 'new@example.com',
+            password: 'secret123',
+          } as any,
+        ),
+      ).rejects.toThrow('This username is already taken');
+    });
+
+    it('rejects invalid confirmation password on update', async () => {
+      const hashedPassword = await bcrypt.hash('secret123', 10);
+      jest.spyOn(service, 'findUsernameExists').mockResolvedValue(false);
+
+      await expect(
+        service.updateUser(
+          {
+            id: 'user-1',
+            username: 'old-name',
+            password: hashedPassword,
+          } as User,
+          {
+            username: 'old-name',
+            email: 'new@example.com',
+            password: 'wrongpass123',
+          } as any,
+        ),
+      ).rejects.toThrow('Invalid password');
+    });
+  });
+
+  describe('findAll', () => {
+    it('returns raw users for admins and masks fields for non-admins', async () => {
+      mockUserRepository.findAndCount = jest.fn().mockResolvedValue([
+        [
+          {
+            id: 'user-1',
+            username: 'ram',
+            githubHandle: 'ramdev',
+            type: 'player',
+          },
+        ],
+        1,
+      ]);
+
+      const adminResult = await service.findAll(1, 10, 'admin');
+      const playerResult = await service.findAll(1, 10, 'player', undefined, 'ra');
+
+      expect(mockUserRepository.findAndCount).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            username: expect.any(Object),
+          }),
+        }),
+      );
+      expect(adminResult.data[0]).toHaveProperty('id', 'user-1');
+      expect(playerResult.data[0]).toEqual({
+        id: 'user-1',
+        username: 'ram',
+        githubHandle: 'ramdev',
+        type: 'player',
+      });
     });
   });
 });

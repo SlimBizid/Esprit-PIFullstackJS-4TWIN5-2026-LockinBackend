@@ -129,23 +129,22 @@ export class ImposterService {
       ).map((participant) => participant.matchId),
     );
 
-    return matches
-      .map((match) => ({
-        id: match.id,
-        challengeId: match.challengeId,
-        visibility: match.visibility,
-        status: match.status,
-        maxPlayers: match.maxPlayers,
-        playerCount: participantCounts.get(match.id) ?? 0,
-        isJoinedByCurrentUser: joinedMatchIds.has(match.id),
-        host: match.host
-          ? {
-              id: match.host.id,
-              username: match.host.username,
-            }
-          : null,
-        createdAt: match.createdAt,
-      }));
+    return matches.map((match) => ({
+      id: match.id,
+      challengeId: match.challengeId,
+      visibility: match.visibility,
+      status: match.status,
+      maxPlayers: match.maxPlayers,
+      playerCount: participantCounts.get(match.id) ?? 0,
+      isJoinedByCurrentUser: joinedMatchIds.has(match.id),
+      host: match.host
+        ? {
+            id: match.host.id,
+            username: match.host.username,
+          }
+        : null,
+      createdAt: match.createdAt,
+    }));
   }
 
   async getMatch(matchId: string, user: User) {
@@ -258,7 +257,9 @@ export class ImposterService {
       sourceCode: dto.sourceCode,
     });
 
-    const passedCount = execution.results.filter((result) => result.passed).length;
+    const passedCount = execution.results.filter(
+      (result) => result.passed,
+    ).length;
     const totalCount = execution.results.length;
     const verdict = this.getVerdict(execution.results, passedCount, totalCount);
 
@@ -321,7 +322,11 @@ export class ImposterService {
       throw new BadRequestException('You cannot vote for yourself.');
     }
 
-    if (!participants.some((participant) => participant.userId === dto.targetUserId)) {
+    if (
+      !participants.some(
+        (participant) => participant.userId === dto.targetUserId,
+      )
+    ) {
       throw new NotFoundException('That player is not part of this match.');
     }
 
@@ -330,7 +335,9 @@ export class ImposterService {
 
     const updatedParticipants = await this.listParticipants(match.id);
 
-    if (updatedParticipants.every((participant) => !!participant.voteTargetUserId)) {
+    if (
+      updatedParticipants.every((participant) => !!participant.voteTargetUserId)
+    ) {
       await this.resolveMatch(match, updatedParticipants);
     }
 
@@ -595,8 +602,9 @@ export class ImposterService {
         };
       }),
       playerCount: participants.length,
-      votesIn: participants.filter((participant) => !!participant.voteTargetUserId)
-        .length,
+      votesIn: participants.filter(
+        (participant) => !!participant.voteTargetUserId,
+      ).length,
       canViewChallenge: match.status !== ImposterMatchStatus.LOBBY,
       createdAt: match.createdAt,
       startedAt: match.startedAt,

@@ -5,15 +5,17 @@ import {
   Request,
   Body,
   Res,
+  Get,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './local-auth.guard';
 import { SignUpDto } from './dto/signUpDto.entity';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import type { CookieOptions, Response } from 'express';
+import type { Response } from 'express';
 import { RefreshTokenGuard } from './token-blacklist/refresh-token.guard';
 import { User } from 'src/user/entities/user.entity';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -34,6 +36,23 @@ export class AuthController {
       user.password,
       user.githubHandle,
     );
+  }
+
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  githubLogin() {}
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  async githubCallback(
+    @Request() req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const githubUser = req.user;
+    const user = await this.authService.findOrCreateGithubUser(githubUser);
+
+    this.authService.setTokenCookies(res, user);
+
+    return res.redirect(process.env.FRONTEND_URL || '');
   }
 
   @Post('forgot-password')

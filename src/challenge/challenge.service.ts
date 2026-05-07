@@ -16,6 +16,7 @@ import { ChallengeType } from './enums/challenge-type.enums';
 import { ChallengeDifficulty } from './enums/challenge-difficulty.enums';
 import { ChallengeTopic } from './enums/challenge-topic.enums';
 import { GeneratedChallengeDraftDto } from './dto/generated-challenge-draft.dto';
+import { Team } from 'src/team/entities/team.entity';
 
 @Injectable()
 export class ChallengeService {
@@ -31,7 +32,27 @@ export class ChallengeService {
   constructor(
     @InjectRepository(Challenge)
     private challengeRepository: Repository<Challenge>,
+    @InjectRepository(Team)
+    private teamRepository: Repository<Team>,
   ) {}
+
+  private async resolveTeams(teamIds: number[]): Promise<Team[]> {
+    if (teamIds.length === 0) {
+      return [];
+    }
+
+    const teams = await this.teamRepository.find({
+      where: teamIds.map((id) => ({ id })),
+    });
+
+    if (teams.length !== teamIds.length) {
+      const foundIds = new Set(teams.map((team) => team.id));
+      const missingId = teamIds.find((id) => !foundIds.has(id));
+      throw new NotFoundException(`Team with ID #${missingId} not found.`);
+    }
+
+    return teams;
+  }
 
   async findAll(queryDto: ChallengeQueryDto, role: UserType) {
     const {
@@ -50,7 +71,11 @@ export class ChallengeService {
     if (difficulty) where.difficulty = difficulty;
     if (type) where.type = type;
 
-    if (search) where.title = ILike(`%${search}%`);
+    const normalizedSearch = search?.trim();
+
+    if (normalizedSearch) {
+      where.title = ILike(`%${normalizedSearch}%`);
+    }
 
     const isAdminQueryingDeleted = deleted === true && role === UserType.ADMIN;
 
@@ -84,6 +109,10 @@ export class ChallengeService {
   ): Promise<Challenge> {
     const challenge = await this.challengeRepository.findOne({
       where: { id },
+      relations: {
+        achievements: true,
+        teams: true,
+      },
       withDeleted: role === UserType.ADMIN,
     });
 
@@ -146,13 +175,17 @@ export class ChallengeService {
       );
     }
 
+    const teams = await this.resolveTeams(createDto.teamIds ?? []);
+
     const newChallenge = this.challengeRepository.create({
       ...createDto,
       acceptanceRate: createDto.acceptanceRate ?? 100,
+      teams,
     });
 
     try {
-      return await this.challengeRepository.save(newChallenge);
+      const savedChallenge = await this.challengeRepository.save(newChallenge);
+      return await this.findOne(savedChallenge.id, UserType.ADMIN);
     } catch {
       throw new InternalServerErrorException(
         `An unexpected error occurred while saving the challenge. `,
@@ -291,13 +324,17 @@ export class ChallengeService {
     const updatedChallenge = await this.challengeRepository.preload({
       id: id,
       ...updateDto,
+      ...(updateDto.teamIds !== undefined && {
+        teams: await this.resolveTeams(updateDto.teamIds),
+      }),
     });
 
     if (!updatedChallenge) {
       throw new NotFoundException(`Challenge #${id} could not be preloaded.`);
     }
 
-    return await this.challengeRepository.save(updatedChallenge);
+    await this.challengeRepository.save(updatedChallenge);
+    return await this.findOne(id, UserType.ADMIN);
   }
 
   async softDelete(id: number): Promise<void> {
@@ -320,6 +357,8 @@ export class ChallengeService {
       type === ChallengeType.QUIZ || type === ChallengeType.QUIZ_PVP;
     const isPvpType =
       type === ChallengeType.PVP || type === ChallengeType.QUIZ_PVP;
+    const isThatsNotMyCoderType = type === ChallengeType.THATS_NOT_MY_CODER;
+    const isCssBattleType = type === ChallengeType.CSS_BATTLE;
 
     return [
       `Generate a draft challenge for the title "${title}".`,
@@ -335,22 +374,50 @@ export class ChallengeService {
             'Each question must include id, prompt, options, correctOptionIds, explanation.',
             'Set starterCode to an empty string, starterCodes to an empty object, and cases to an empty array.',
           ].join(' ')
-        : [
-            'The JSON response must include:',
-            'title, content, difficulty, type, topics, acceptanceRate, examples, constraints, conditions, starterCode, starterCodes, cases.',
-            'starterCodes must include javascript, typescript, python, java, and cpp.',
-            'Use these exact execution contracts:',
-            'javascript: function solution(...args) { /* ... */ }',
-            'typescript: function solution(...args: unknown[]): unknown { /* ... */ }',
-            'python: def solution(*args):',
-            'java: class Solution { public Object solution(Object... args) { /* ... */ } }',
-            'cpp: class Solution { public: JsonValue solution(const std::vector<JsonValue>& args) { /* ... */ } };',
-            'Do not use names like subtract, addTwoNumbers, solve, or main. The callable entry point must be named solution.',
-            'cases must be an array of 3 to 5 test cases.',
-            'Each test case must include inputs and expectedOutput.',
-            'Each input must have type and value as strings.',
-            'Set quizQuestions to an empty array.',
-          ].join(' '),
+        : isThatsNotMyCoderType
+          ? [
+              'The JSON response must include:',
+              'title, content, difficulty, type, topics, acceptanceRate, examples, constraints, conditions, starterCode, starterCodes, cases.',
+              'Set starterCode to an empty string and starterCodes to an empty object.',
+              'cases must be an array of 4 to 7 review cases.',
+              'Each case must include inputs and expectedOutput.',
+              'Each input must have type and value as strings.',
+              'Every case must contain inputs with types "title", "author", "language", "note", "rationale", "timeLimit", and "code".',
+              'expectedOutput must be exactly "accept" or "deny".',
+              'Set examples, constraints, and conditions to empty arrays.',
+              'Set quizQuestions to an empty array.',
+            ].join(' ')
+          : isCssBattleType
+            ? [
+                'The JSON response must include:',
+                'title, content, difficulty, type, topics, acceptanceRate, examples, constraints, conditions, starterCode, starterCodes, cases.',
+                'Set starterCode to an empty string and starterCodes to an empty object.',
+                'cases must be an array with exactly 1 visual battle case.',
+                'Each case must include inputs and expectedOutput.',
+                'Each input must have type and value as strings.',
+                'Every case must contain inputs with type "targetHtml" and "targetCss".',
+                'Optional input types include note, starterHtml, starterCss, viewportWidth, viewportHeight, and colors.',
+                'If colors is provided, it must be a JSON array encoded as a string, for example "[\"#0b0f1a\",\"#ff6b00\",\"#101215\"]".',
+                'expectedOutput should be a numeric minimum score (0-100) as a string, like "100".',
+                'Set examples, constraints, and conditions to empty arrays.',
+                'Set quizQuestions to an empty array.',
+              ].join(' ')
+            : [
+                'The JSON response must include:',
+                'title, content, difficulty, type, topics, acceptanceRate, examples, constraints, conditions, starterCode, starterCodes, cases.',
+                'starterCodes must include javascript, typescript, python, java, and cpp.',
+                'Use these exact execution contracts:',
+                'javascript: function solution(...args) { /* ... */ }',
+                'typescript: function solution(...args: unknown[]): unknown { /* ... */ }',
+                'python: def solution(*args):',
+                'java: class Solution { public Object solution(Object... args) { /* ... */ } }',
+                'cpp: class Solution { public: JsonValue solution(const std::vector<JsonValue>& args) { /* ... */ } };',
+                'Do not use names like subtract, addTwoNumbers, solve, or main. The callable entry point must be named solution.',
+                'cases must be an array of 3 to 5 test cases.',
+                'Each test case must include inputs and expectedOutput.',
+                'Each input must have type and value as strings.',
+                'Set quizQuestions to an empty array.',
+              ].join(' '),
     ].join(' ');
   }
 
@@ -392,30 +459,36 @@ export class ChallengeService {
     const isQuizType =
       request.type === ChallengeType.QUIZ ||
       request.type === ChallengeType.QUIZ_PVP;
-    const starterCodes: Record<string, string> = isQuizType
-      ? ChallengeService.EMPTY_STARTER_CODES
-      : {
-          javascript: this.normalizeStarterCode(
-            'javascript',
-            String(draft?.starterCodes?.javascript ?? draft?.starterCode ?? ''),
-          ),
-          typescript: this.normalizeStarterCode(
-            'typescript',
-            String(draft?.starterCodes?.typescript ?? ''),
-          ),
-          python: this.normalizeStarterCode(
-            'python',
-            String(draft?.starterCodes?.python ?? ''),
-          ),
-          java: this.normalizeStarterCode(
-            'java',
-            String(draft?.starterCodes?.java ?? ''),
-          ),
-          cpp: this.normalizeStarterCode(
-            'cpp',
-            String(draft?.starterCodes?.cpp ?? ''),
-          ),
-        };
+    const isCustomVisualType =
+      request.type === ChallengeType.THATS_NOT_MY_CODER ||
+      request.type === ChallengeType.CSS_BATTLE;
+    const starterCodes: Record<string, string> =
+      isQuizType || isCustomVisualType
+        ? ChallengeService.EMPTY_STARTER_CODES
+        : {
+            javascript: this.normalizeStarterCode(
+              'javascript',
+              String(
+                draft?.starterCodes?.javascript ?? draft?.starterCode ?? '',
+              ),
+            ),
+            typescript: this.normalizeStarterCode(
+              'typescript',
+              String(draft?.starterCodes?.typescript ?? ''),
+            ),
+            python: this.normalizeStarterCode(
+              'python',
+              String(draft?.starterCodes?.python ?? ''),
+            ),
+            java: this.normalizeStarterCode(
+              'java',
+              String(draft?.starterCodes?.java ?? ''),
+            ),
+            cpp: this.normalizeStarterCode(
+              'cpp',
+              String(draft?.starterCodes?.cpp ?? ''),
+            ),
+          };
     const topics = Array.isArray(draft?.topics)
       ? draft.topics.filter((topic: string) =>
           ChallengeService.SUPPORTED_TOPICS.includes(topic as ChallengeTopic),
@@ -425,7 +498,8 @@ export class ChallengeService {
     return {
       title: request.title.trim(),
       content: String(draft?.content ?? '').trim(),
-      starterCode: isQuizType ? '' : (starterCodes.javascript ?? ''),
+      starterCode:
+        isQuizType || isCustomVisualType ? '' : (starterCodes.javascript ?? ''),
       starterCodes,
       examples: this.normalizeStringArray(draft?.examples),
       constraints: this.normalizeStringArray(draft?.constraints),
