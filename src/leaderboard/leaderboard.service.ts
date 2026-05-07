@@ -12,6 +12,9 @@ import { CreateLeaderboardEntryDto } from './dto/create-leaderboard-entry.dto';
 import { AwardChallengeDto } from './dto/award-challenge.dto';
 import { ChallengeDifficulty } from '../challenge/enums/challenge-difficulty.enums';
 import { ChallengeType } from '../challenge/enums/challenge-type.enums';
+import { LeaderboardScope } from './enums/leaderboard-scope.enum';
+import { Rank } from './enums/rank.enum';
+import { getRankFromScore, getRankProgress } from './constants/rank-thresholds';
 
 const BASE_SCORE: Record<ChallengeDifficulty, number> = {
   [ChallengeDifficulty.EASY]: 50,
@@ -49,6 +52,18 @@ const TYPE_XP_BONUS: Record<ChallengeType, number> = {
 
 const LOGIN_XP = 10;
 
+export type ScoreLeaderboardItem = {
+  userId: string;
+  totalScore: number;
+  challengeCompletions: number;
+  rank: Rank;
+  rankProgress: number;
+};
+
+// Score is a seasonal leaderboard metric. It is calculated from challenge rewards
+// and is intended for visual ranking within the current season or recent date
+// windows. XP is a separate, long-term progression metric and remains ordered
+// all-time.
 @Injectable()
 export class LeaderboardService {
   constructor(
@@ -60,6 +75,7 @@ export class LeaderboardService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
   ) {}
+
   private async findEntryByUser(userId: string): Promise<LeaderboardEntry> {
     const entry = await this.leaderboardRepo.findOne({ where: { userId } });
     if (!entry)
@@ -118,6 +134,9 @@ export class LeaderboardService {
         this.rewardRepo.create({
           userId: dto.userId,
           challengeId: dto.challengeId,
+          scoreAwarded: score,
+          xpAwarded: xp,
+          season: this.getCurrentSeason(),
         }),
       ),
       this.leaderboardRepo.save(entry),
@@ -154,10 +173,72 @@ export class LeaderboardService {
     ]);
   }
 
-  async getScoreLeaderboard(): Promise<LeaderboardEntry[]> {
-    return this.leaderboardRepo.find({
-      order: { totalScore: 'DESC', challengeCompletions: 'DESC' },
-    });
+  async getScoreLeaderboard(
+    scope: LeaderboardScope = LeaderboardScope.SEASON,
+  ): Promise<LeaderboardEntry[] | ScoreLeaderboardItem[]> {
+    if (scope === LeaderboardScope.ALL) {
+      return this.leaderboardRepo.find({
+        order: { totalScore: 'DESC', challengeCompletions: 'DESC' },
+      });
+    }
+
+    const query = this.rewardRepo
+      .createQueryBuilder('reward')
+      .select('reward.userId', 'userId')
+      .addSelect('SUM(reward.scoreAwarded)', 'totalScore')
+      .addSelect('COUNT(*)', 'challengeCompletions')
+      .groupBy('reward.userId')
+      .orderBy('totalScore', 'DESC');
+
+    if (scope === LeaderboardScope.SEASON) {
+      query.where('reward.season = :season', {
+        season: this.getCurrentSeason(),
+      });
+    } else {
+      const startDate = this.getScopeStartDate(scope);
+      if (!startDate) {
+        return this.getScoreLeaderboard(LeaderboardScope.SEASON);
+      }
+      query.where('reward.createdAt >= :since', {
+        since: startDate.toISOString(),
+      });
+    }
+
+    const rows = await query.getRawMany();
+
+    return rows.map((row) => ({
+      userId: row.userId,
+      totalScore: Number(row.totalScore),
+      challengeCompletions: Number(row.challengeCompletions),
+      rank: getRankFromScore(Number(row.totalScore)),
+      rankProgress: getRankProgress(Number(row.totalScore)),
+    }));
+  }
+
+  private getCurrentSeason(): string {
+    const now = new Date();
+    return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(
+      2,
+      '0',
+    )}`;
+  }
+
+  private getScopeStartDate(scope: LeaderboardScope): Date | null {
+    const date = new Date();
+
+    switch (scope) {
+      case LeaderboardScope.DAY:
+        date.setDate(date.getDate() - 1);
+        return date;
+      case LeaderboardScope.WEEK:
+        date.setDate(date.getDate() - 7);
+        return date;
+      case LeaderboardScope.MONTH:
+        date.setDate(date.getDate() - 30);
+        return date;
+      default:
+        return null;
+    }
   }
 
   async getXpLeaderboard(): Promise<User[]> {
@@ -165,27 +246,69 @@ export class LeaderboardService {
   }
 
   async getUserStanding(userId: string): Promise<{
-    scoreEntry: LeaderboardEntry;
+    scoreEntry: ScoreLeaderboardItem;
     scoreRank: number;
+    rank: Rank;
+    rankProgress: number;
     xpRank: number;
     xp: number;
   }> {
-    const [scoreEntry, user, allByScore, allByXp] = await Promise.all([
-      this.leaderboardRepo.findOne({ where: { userId } }),
+    const [user, allByXp, seasonScores] = await Promise.all([
       this.userRepo.findOne({ where: { id: userId } }),
-      this.leaderboardRepo.find({
-        order: { totalScore: 'DESC', challengeCompletions: 'DESC' },
-      }),
       this.userRepo.find({ order: { xp: 'DESC' } }),
+      this.rewardRepo
+        .createQueryBuilder('reward')
+        .select('reward.userId', 'userId')
+        .addSelect('SUM(reward.scoreAwarded)', 'totalScore')
+        .addSelect('COUNT(*)', 'challengeCompletions')
+        .where('reward.season = :season', {
+          season: this.getCurrentSeason(),
+        })
+        .groupBy('reward.userId')
+        .orderBy('totalScore', 'DESC')
+        .getRawMany(),
     ]);
 
-    if (!scoreEntry || !user) {
+    if (!user) {
       throw new NotFoundException(`No standing found for user ${userId}`);
     }
 
-    const scoreRank = allByScore.findIndex((e) => e.userId === userId) + 1;
+    const scoreRows = seasonScores.map((row) => ({
+      userId: row.userId,
+      totalScore: Number(row.totalScore),
+      challengeCompletions: Number(row.challengeCompletions),
+      rank: getRankFromScore(Number(row.totalScore)),
+      rankProgress: getRankProgress(Number(row.totalScore)),
+    }));
+
+    const scoreIndex = scoreRows.findIndex((row) => row.userId === userId);
+    const scoreEntry: ScoreLeaderboardItem =
+      scoreIndex >= 0
+        ? scoreRows[scoreIndex]
+        : {
+            userId,
+            totalScore: 0,
+            challengeCompletions: 0,
+            rank: getRankFromScore(0),
+            rankProgress: getRankProgress(0),
+          };
+    const scoreRank = scoreIndex >= 0 ? scoreIndex + 1 : scoreRows.length + 1;
+    const rank = scoreEntry.rank;
+    const rankProgress = scoreEntry.rankProgress;
     const xpRank = allByXp.findIndex((u) => u.id === userId) + 1;
 
-    return { scoreEntry, scoreRank, xpRank, xp: user.xp };
+    return { scoreEntry, scoreRank, rank, rankProgress, xpRank, xp: user.xp };
+  }
+
+  
+  getRankThresholds(): Record<Rank, { min: number; max: number }> {
+    const { RANK_THRESHOLDS } = require('./constants/rank-thresholds');
+    return RANK_THRESHOLDS;
+  }
+
+  
+  getAllRanks(): Rank[] {
+    const { getAllRanksOrdered } = require('./constants/rank-thresholds');
+    return getAllRanksOrdered();
   }
 }

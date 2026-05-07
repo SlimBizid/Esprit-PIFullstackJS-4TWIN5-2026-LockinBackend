@@ -21,6 +21,15 @@ export class UserChallengeReward {
   @Column('int')
   challengeId!: number;
 
+  @Column({ type: 'int', default: 0 })
+  scoreAwarded!: number;
+
+  @Column({ type: 'int', default: 0 })
+  xpAwarded!: number;
+
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  season!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 }

@@ -1,12 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { LeaderboardService } from './leaderboard.service';
+import {
+  LeaderboardService,
+  ScoreLeaderboardItem,
+} from './leaderboard.service';
 import { LeaderboardEntry } from './entities/leaderboard.entity';
 import { UserChallengeReward } from './entities/user-challenge-reward.entity';
 import { User } from '../user/entities/user.entity';
 import { ChallengeDifficulty } from '../challenge/enums/challenge-difficulty.enums';
 import { ChallengeType } from '../challenge/enums/challenge-type.enums';
+import { LeaderboardScope } from './enums/leaderboard-scope.enum';
+import { Rank } from './enums/rank.enum';
 
 const mockEntry = (overrides = {}): LeaderboardEntry =>
   ({
@@ -39,6 +44,13 @@ describe('LeaderboardService', () => {
     save: jest.fn(),
   };
 
+  const mockRewardRepo = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
   const mockUserRepo = {
     findOne: jest.fn(),
     find: jest.fn(),
@@ -52,12 +64,18 @@ describe('LeaderboardService', () => {
   };
 
   beforeEach(async () => {
+    mockRewardRepo.create.mockImplementation((dto) => dto);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LeaderboardService,
         {
           provide: getRepositoryToken(LeaderboardEntry),
           useValue: mockLeaderboardRepo,
+        },
+        {
+          provide: getRepositoryToken(UserChallengeReward),
+          useValue: mockRewardRepo,
         },
         {
           provide: getRepositoryToken(User),
@@ -101,11 +119,16 @@ describe('LeaderboardService', () => {
       const entry = mockEntry();
       const user = mockUser();
 
+      mockRewardRepo.findOne.mockResolvedValue(null);
       mockLeaderboardRepo.findOne.mockResolvedValue(entry);
       mockUserRepo.findOne.mockResolvedValue(user);
-      mockRewardRepo.findOne.mockResolvedValue(null);
-      mockRewardRepo.create.mockImplementation((value) => value);
-      mockRewardRepo.save.mockResolvedValue({} as never);
+      mockRewardRepo.save.mockResolvedValue({
+        ...entry,
+        userId: 'user-uuid',
+        challengeId: 1,
+        scoreAwarded: 50,
+        xpAwarded: 20,
+      });
       mockLeaderboardRepo.save.mockResolvedValue(entry);
       mockUserRepo.save.mockResolvedValue(user);
 
@@ -119,6 +142,14 @@ describe('LeaderboardService', () => {
       expect(entry.totalScore).toBe(50);
       expect(entry.challengeCompletions).toBe(1);
       expect(user.xp).toBe(20);
+      expect(mockRewardRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-uuid',
+          challengeId: 1,
+          scoreAwarded: 50,
+          xpAwarded: 20,
+        }),
+      );
     });
 
     it('awards MEDIUM + PVP: +150 score (100+50), +70 xp (50+20)', async () => {
@@ -168,6 +199,7 @@ describe('LeaderboardService', () => {
     });
 
     it('throws NotFoundException if user or entry is missing', async () => {
+      mockRewardRepo.findOne.mockResolvedValue(null);
       mockLeaderboardRepo.findOne.mockResolvedValue(null);
       mockUserRepo.findOne.mockResolvedValue(null);
       mockRewardRepo.findOne.mockResolvedValue(null);
@@ -222,17 +254,95 @@ describe('LeaderboardService', () => {
   });
 
   describe('getScoreLeaderboard', () => {
-    it('returns entries ordered by totalScore DESC', async () => {
-      const entries = [
-        mockEntry({ totalScore: 300 }),
-        mockEntry({ totalScore: 100 }),
-      ];
-      mockLeaderboardRepo.find.mockResolvedValue(entries);
+    it('returns aggregated season score data by default', async () => {
+      const queryBuilderMock = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([
+          {
+            userId: 'user-uuid',
+            totalScore: '220',
+            challengeCompletions: '4',
+          },
+          {
+            userId: 'other-uuid',
+            totalScore: '180',
+            challengeCompletions: '3',
+          },
+        ]),
+      };
+
+      mockRewardRepo.createQueryBuilder.mockReturnValue(queryBuilderMock);
 
       const result = await service.getScoreLeaderboard();
 
-      expect(result[0].totalScore).toBe(300);
-      expect(result[1].totalScore).toBe(100);
+      expect(result).toEqual<ScoreLeaderboardItem[]>([
+        {
+          userId: 'user-uuid',
+          totalScore: 220,
+          challengeCompletions: 4,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
+        {
+          userId: 'other-uuid',
+          totalScore: 180,
+          challengeCompletions: 3,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
+      ]);
+      expect(queryBuilderMock.where).toHaveBeenCalledWith(
+        'reward.season = :season',
+        expect.any(Object),
+      );
+    });
+
+    it('returns aggregated 24h score data when scope is 24h', async () => {
+      const queryBuilderMock = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([
+          {
+            userId: 'user-uuid',
+            totalScore: '120',
+            challengeCompletions: '3',
+          },
+          {
+            userId: 'other-uuid',
+            totalScore: '80',
+            challengeCompletions: '2',
+          },
+        ]),
+      };
+
+      mockRewardRepo.createQueryBuilder.mockReturnValue(queryBuilderMock);
+
+      const result = await service.getScoreLeaderboard(LeaderboardScope.DAY);
+
+      expect(result).toEqual<ScoreLeaderboardItem[]>([
+        {
+          userId: 'user-uuid',
+          totalScore: 120,
+          challengeCompletions: 3,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
+        {
+          userId: 'other-uuid',
+          totalScore: 80,
+          challengeCompletions: 2,
+          rank: Rank.IRON,
+          rankProgress: expect.any(Number),
+        },
+      ]);
+      expect(queryBuilderMock.where).toHaveBeenCalled();
     });
   });
 
@@ -249,34 +359,66 @@ describe('LeaderboardService', () => {
   });
 
   describe('getUserStanding', () => {
-    it('returns scoreEntry, scoreRank, xpRank, and xp for a user', async () => {
-      const entry = mockEntry({ totalScore: 100 });
-      const otherEntry = mockEntry({
-        id: 'other-entry',
-        userId: 'other-uuid',
-        totalScore: 200,
-      });
+    it('returns current season scoreEntry, scoreRank, xpRank, and xp for a user', async () => {
       const user = mockUser({ xp: 80 });
       const allUsers = [mockUser({ id: 'other-uuid', xp: 200 }), user];
 
-      mockLeaderboardRepo.findOne.mockResolvedValue(entry);
+      const queryBuilderMock = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([
+          {
+            userId: 'other-uuid',
+            totalScore: '200',
+            challengeCompletions: '4',
+          },
+          {
+            userId: 'user-uuid',
+            totalScore: '100',
+            challengeCompletions: '2',
+          },
+        ]),
+      };
+
       mockUserRepo.findOne.mockResolvedValue(user);
-      mockLeaderboardRepo.find.mockResolvedValue([otherEntry, entry]);
       mockUserRepo.find.mockResolvedValue(allUsers);
+      mockRewardRepo.createQueryBuilder.mockReturnValue(queryBuilderMock);
 
       const result = await service.getUserStanding('user-uuid');
 
-      expect(result.scoreEntry.totalScore).toBe(100);
+      expect(result.scoreEntry).toEqual({
+        userId: 'user-uuid',
+        totalScore: 100,
+        challengeCompletions: 2,
+        rank: Rank.IRON,
+        rankProgress: expect.any(Number),
+      });
       expect(result.scoreRank).toBe(2);
+      expect(result.rank).toBe(Rank.IRON);
+      expect(result.rankProgress).toBeGreaterThanOrEqual(0);
+      expect(result.rankProgress).toBeLessThanOrEqual(100);
       expect(result.xp).toBe(80);
       expect(result.xpRank).toBe(2);
+      expect(queryBuilderMock.where).toHaveBeenCalledWith(
+        'reward.season = :season',
+        expect.any(Object),
+      );
     });
 
-    it('throws NotFoundException if entry or user is missing', async () => {
-      mockLeaderboardRepo.findOne.mockResolvedValue(null);
+    it('throws NotFoundException if user is missing', async () => {
       mockUserRepo.findOne.mockResolvedValue(null);
       mockUserRepo.find.mockResolvedValue([]);
-      mockLeaderboardRepo.find.mockResolvedValue([]);
+      mockRewardRepo.createQueryBuilder.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue([]),
+      });
 
       await expect(service.getUserStanding('ghost')).rejects.toThrow(
         NotFoundException,
